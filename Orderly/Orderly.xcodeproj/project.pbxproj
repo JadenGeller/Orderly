@@ -13,6 +13,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		4D91C7DA1C79B9F100E47932 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D91C7D51C79B9F100E47932 /* Comparator.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 4D91C7B91C79B8CF00E47932;
+			remoteInfo = Comparator;
+		};
+		4D91C7DC1C79B9F100E47932 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4D91C7D51C79B9F100E47932 /* Comparator.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 4D91C7C31C79B8CF00E47932;
+			remoteInfo = ComparatorTests;
+		};
 		4D93621E1C45FCC60038951F /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4D9362091C45FCC60038951F /* Project object */;
@@ -23,6 +37,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		4D91C7D51C79B9F100E47932 /* Comparator.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Comparator.xcodeproj; path = "../Packages/Comparator-1.1.1/Comparator/Comparator.xcodeproj"; sourceTree = "<group>"; };
 		4D9362121C45FCC60038951F /* Orderly.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Orderly.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D9362171C45FCC60038951F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4D93621C1C45FCC60038951F /* OrderlyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrderlyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -50,9 +65,19 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		4D91C7D61C79B9F100E47932 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4D91C7DB1C79B9F100E47932 /* Comparator.framework */,
+				4D91C7DD1C79B9F100E47932 /* ComparatorTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		4D9362081C45FCC60038951F = {
 			isa = PBXGroup;
 			children = (
+				4D91C7D51C79B9F100E47932 /* Comparator.xcodeproj */,
 				4D9362141C45FCC60038951F /* Orderly */,
 				4D9362201C45FCC60038951F /* OrderlyTests */,
 				4D9362131C45FCC60038951F /* Products */,
@@ -163,6 +188,12 @@
 			mainGroup = 4D9362081C45FCC60038951F;
 			productRefGroup = 4D9362131C45FCC60038951F /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 4D91C7D61C79B9F100E47932 /* Products */;
+					ProjectRef = 4D91C7D51C79B9F100E47932 /* Comparator.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				4D9362111C45FCC60038951F /* Orderly */,
@@ -170,6 +201,23 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		4D91C7DB1C79B9F100E47932 /* Comparator.framework */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.framework;
+			path = Comparator.framework;
+			remoteRef = 4D91C7DA1C79B9F100E47932 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		4D91C7DD1C79B9F100E47932 /* ComparatorTests.xctest */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.cfbundle;
+			path = ComparatorTests.xctest;
+			remoteRef = 4D91C7DC1C79B9F100E47932 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
 
 /* Begin PBXResourcesBuildPhase section */
 		4D9362101C45FCC60038951F /* Resources */ = {
@@ -382,6 +430,7 @@
 				4D9362281C45FCC60038951F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		4D9362291C45FCC60038951F /* Build configuration list for PBXNativeTarget "OrderlyTests" */ = {
 			isa = XCConfigurationList;
@@ -390,6 +439,7 @@
 				4D93622B1C45FCC60038951F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

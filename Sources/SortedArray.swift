@@ -6,49 +6,84 @@
 //  Copyright © 2016 Jaden Geller. All rights reserved.
 //
 
-public struct SortedArray<Element: Comparable> {
+import Comparator
+
+public struct SortedArray<Element> {
+    private let isOrderedBefore: (Element, Element) -> Bool
     private var backing: [Element]
 }
 
-extension SequenceType where Generator.Element: Comparable {
-    public var isSorted: Bool {
+extension SequenceType {
+    public func isSorted(@noescape isOrderedBefore: (Generator.Element, Generator.Element) -> Bool) -> Bool {
         var previous: Generator.Element?
         for value in self {
             defer { previous = value }
             guard let previous = previous else { continue }
-            guard value >= previous else { return false }
+            guard Ordering(previous, value, isOrderedBefore: isOrderedBefore) != .Descending else { return false }
         }
         return true
     }
 }
 
+extension SequenceType where Generator.Element: Comparable {
+    public var isSorted: Bool {
+        return isSorted(<)
+    }
+}
+
 extension SortedArray {
     /// Constructs a `SortedArray` assuing that `array` is already sorted, performing no check.
-    public init(unsafeSorted array: [Element]) {
+    public init(unsafeSorted array: [Element], isOrderedBefore: (Element, Element) -> Bool) {
         self.backing = []
+        self.isOrderedBefore = isOrderedBefore
+    }
+    
+    /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
+    public init?(sorted array: [Element], isOrderedBefore: (Element, Element) -> Bool) {
+        guard array.isSorted(isOrderedBefore) else { return nil }
+        self.backing = array
+        self.isOrderedBefore = isOrderedBefore
+    }
+    
+    // Constructs a `SortedArray` by sorting `array`.
+    public init(unsorted array: [Element], isOrderedBefore: (Element, Element) -> Bool) {
+        self.backing = array.sort(isOrderedBefore)
+        self.isOrderedBefore = isOrderedBefore
+    }
+    
+    public init(isOrderedBefore: (Element, Element) -> Bool) {
+        self.backing = []
+        self.isOrderedBefore = isOrderedBefore
+    }
+}
+
+extension SortedArray where Element: Comparable {
+    /// Constructs a `SortedArray` assuing that `array` is already sorted, performing no check.
+    public init(unsafeSorted array: [Element]) {
+        self.init(unsafeSorted: array, isOrderedBefore: <)
     }
     
     /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
     public init?(sorted array: [Element]) {
-        guard array.isSorted else { return nil }
-        self.backing = array
+        self.init(sorted: array, isOrderedBefore: <)
     }
     
     // Constructs a `SortedArray` by sorting `array`.
     public init(unsorted array: [Element]) {
-        self.backing = array.sort()
+        self.init(unsorted: array, isOrderedBefore: <)
     }
     
     public init() {
-        self.backing = []
+        self.init(isOrderedBefore: <)
     }
 }
 
-extension SortedArray: ArrayLiteralConvertible {
-    public init(arrayLiteral elements: Element...) {
-        self.init(unsorted: elements)
-    }
-}
+// Swift 3.0 :(
+//extension SortedArray: ArrayLiteralConvertible where Element: Comparable {
+//    public init(arrayLiteral elements: Element...) {
+//        self.init(unsorted: elements)
+//    }
+//}
 
 extension Array where Element: Comparable {
     public init(_ sortedArray: SortedArray<Element>) {
@@ -81,21 +116,16 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 }
 
 extension SortedArray {
-    private func insertionIndexOf(element: Element, range: Range<Int>) -> Int {
+    @warn_unused_result private func insertionIndexOf(element: Element, range: Range<Int>) -> Int {
         var (min, max) = (range.startIndex, range.endIndex)
         while min < max {
             let mid = (max - min) / 2 + min
             let midElement = self[mid]
-            
-            if midElement < element {
-                min = mid + 1
-            }
-            else if midElement > element {
-                max = mid
-            }
-            else {
-                assert(midElement == element)
-                return mid
+
+            switch Ordering(midElement, element, isOrderedBefore: isOrderedBefore) {
+            case .Ascending:  min = mid + 1
+            case .Descending: max = mid
+            case .Same:       return mid
             }
         }
         return min
@@ -135,7 +165,7 @@ extension SortedArray {
     
     public func indexOf(element: Element) -> Int? {
         let potentialIndex = insertionIndexOf(element)
-        guard element == self[potentialIndex] else { return nil }
+        guard .Same == Ordering(element, self[potentialIndex], isOrderedBefore: isOrderedBefore) else { return nil }
         return potentialIndex
     }
     
@@ -186,7 +216,7 @@ extension SortedArray {
     }
 }
 
-public func ==<Element>(lhs: SortedArray<Element>, rhs: SortedArray<Element>) -> Bool {
+public func ==<Element: Equatable>(lhs: SortedArray<Element>, rhs: SortedArray<Element>) -> Bool {
     return lhs.backing == rhs.backing
 }
 

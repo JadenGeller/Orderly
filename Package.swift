@@ -2,5 +2,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "Orderly"
+    name: "Orderly",
+    dependencies: [
+        .Package(url: "https://github.com/JadenGeller/Comparator.git", majorVersion: 1)
+    ]
 )

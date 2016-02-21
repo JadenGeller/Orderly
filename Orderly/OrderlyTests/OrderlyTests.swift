@@ -19,7 +19,7 @@ class OrderlyTests: XCTestCase {
     }
     
     func testInsertionIndex() {
-        let arr: SortedArray = [1, 2, 5, 6, 6, 10, 12]
+        let arr = SortedArray(unsorted: [1, 2, 5, 6, 6, 10, 12])
         XCTAssertEqual(0, arr.insertionIndexOf(-100))
         XCTAssertEqual(0, arr.insertionIndexOf(0))
         XCTAssertEqual(0, arr.insertionIndexOf(1))
@@ -32,7 +32,7 @@ class OrderlyTests: XCTestCase {
     }
     
     func testInsert() {
-        var arr: SortedArray = [1, 2, 5, 6, 6, 10, 12]
+        var arr = SortedArray(unsorted: [1, 2, 5, 6, 6, 10, 12])
         arr.insert(3)
         arr.insert(6)
         arr.insert(0)
@@ -42,9 +42,9 @@ class OrderlyTests: XCTestCase {
     }
     
     func testInsertSortedArray() {
-        let arr: SortedArray       = [1, 2, 3, 5, 10, 12, 13]
-        let sortedBar: SortedArray = [2, 3, 4, 6, 7, 8, 16]
-        let unsortedBar: Array     = [2, 3, 4, 6, 7, 8, 16]
+        let arr = SortedArray(unsorted: [1, 2, 3, 5, 10, 12, 13])
+        let sortedBar = SortedArray(unsorted: [2, 3, 4, 6, 7, 8, 16])
+        let unsortedBar: Array = [2, 3, 4, 6, 7, 8, 16]
         
         var arrNormal = arr
         arrNormal.insertContentsOf(unsortedBar)
