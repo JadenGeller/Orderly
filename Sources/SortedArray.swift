@@ -1,4 +1,4 @@
-//
+/ //
 //  SortedArray.swift
 //  Orderly
 //
@@ -34,7 +34,7 @@ extension SequenceType where Generator.Element: Comparable {
 extension SortedArray {
     /// Constructs a `SortedArray` assuing that `array` is already sorted, performing no check.
     public init(unsafeSorted array: [Element], isOrderedBefore: (Element, Element) -> Bool) {
-        self.backing = []
+        self.backing = array
         self.isOrderedBefore = isOrderedBefore
     }
     
