@@ -368,6 +368,31 @@ extension SortedArray {
     }
 }
 
+extension SortedArray {
+    /// Replaces element at index with a new element, resorting the array afterwards.
+    ///
+    /// Note this is more efficient than simply removing and adding since this function
+    /// will only shift the elements that actually need to move.
+    ///
+    /// - Complexity: O(n), where n is the length of the array.
+    public mutating func replace(at index: Int, with element: Element) {        
+        // Find most efficient position to insert at
+        switch ordering(array[index], element) {
+            case .descending:
+                let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
+                array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
+                array[newIndex] = element
+            case .ascending:
+                let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
+                array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
+                array[newIndex - 1] = element
+            case .same:
+                array[index] = element
+        }
+    }
+}
+
 public func ==<Element: Equatable>(lhs: SortedArray<Element>, rhs: SortedArray<Element>) -> Bool {
     return lhs.array == rhs.array
 }
+
