@@ -1,0 +1,547 @@
+%{
+    from enum import Enum
+    from collections import namedtuple
+    
+    class SortedArrayType(Enum):
+        NORMAL     = 1
+        DESCRIPTOR = 2
+        LAZY_MAP   = 3
+                                
+        @property
+        def prefix(self):
+            return {
+                NORMAL:     '',
+                DESCRIPTOR: 'Descriptor',
+                LAZY_MAP:   'LazyMap'
+            }[self]
+            
+        @property
+        def name(self):
+            return self.prefix + 'SortedArray'
+            
+        @property
+        def generics(self):
+            return {
+                NORMAL:     {'Element': 'Comparable'},
+                DESCRIPTOR: {'Element': None},
+                LAZY_MAP:   {'Element': None, 'Comparator': 'Comparable'}
+            }[self]
+            
+        @property
+        def stripped_generics(self):
+            return { arg: None for arg in self.generics }
+                                                        
+        def comparator(self, name):
+            if self is LAZY_MAP: 
+                return name + "Comparator"
+            else:
+                return name
+            
+        def compare(self, lhs, op, rhs):
+            if self is not DESCRIPTOR:
+                return ' '.join([lhs, op, rhs])
+            else:
+                def predicate_compare(lhs, op, rhs):
+                    return {
+                        '<':  lambda: 'areIncreasingInOrdering({}, {})'
+                                        .format(lhs, rhs),
+                        '>':  lambda: predicate_compare(rhs, '<', lhs),
+                        '<=': lambda: '!' + predicate_compare(lhs, '>', rhs),
+                        '>=': lambda: '!' + predicate_compare(lhs, '<', rhs),
+                        '==': lambda: ('!areIncreasingInOrdering({0}, {1}) && ' +
+                                       '!areIncreasingInOrdering({1}, {0})')
+                                        .format(lhs, rhs),
+                    }[op]()
+                return predicate_compare(lhs, op, rhs)
+            
+    globals().update(SortedArrayType.__members__)
+    
+    def generics_str(args):
+        if len(args) == 0:
+            return ''
+        else:
+            args_str = ', '.join("{}: {}".format(arg, constraint)\
+                if constraint is not None else arg\
+                for arg, constraint in args.iteritems())
+            return '<{}>'.format(args_str)
+}%
+// FILE: IndexPosition.swift
+/// Option that indices which insertion index to use when multiple
+/// possibilities exist (in the case of duplicate matching elements).
+public enum IndexPosition {
+    /// The first possible index.
+    case first
+    /// The last possible index.
+    case last
+    /// The most efficient index to locate.
+    case any
+}
+
+%{
+    def init_arg(element_name='Element'):
+        Argument = namedtuple('Argument', ['label', 'name', 'type'])
+        return {
+            NORMAL:     None,
+            DESCRIPTOR: Argument('by', 'areIncreasingInOrdering',
+                                '@escaping ({0}, {0}) -> Bool'.format(element_name)),
+            LAZY_MAP:   Argument('on', 'transform',
+                                '@escaping ({}) -> Comparator'.format(element_name)),
+        }[type]
+        
+    def arg_str(arg, append=False, call=False):
+        assert not append or not call
+        if arg is None:
+            return ''
+        else:
+            if append:
+                return ', {} {}: {}'.format(arg.label, arg.name, arg.type)
+            elif call:
+                return '{}: {}'.format(arg.label, arg.name)
+            else:
+                return '{} {}: {}'.format(arg.label, arg.name, arg.type)
+}%
+% for type in SortedArrayType:
+// FILE: ${type.name}.swift
+extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == Iterator.Element${
+    ', Iterator.Element: Comparable' if type is NORMAL else ''} {
+    public func isSorted${
+        '<Comparator: Comparable>' if type is LAZY_MAP else ''
+        }(${arg_str(init_arg(element_name='Iterator.Element')) or ''
+        }) -> Bool {
+        % if type is LAZY_MAP: 
+        %     comparator_seq = 'transformed'
+        let transformed = lazy.map(transform)
+        % else:
+        %     comparator_seq = 'self'
+        %end
+        for (lhs, rhs) in zip(${comparator_seq}, ${comparator_seq}.dropFirst()) {
+            guard ${type.compare('lhs', '<=', 'rhs')} else { return false }
+        }
+        return true
+    }
+    % if type is LAZY_MAP: 
+    
+    // FIXME: Use `withoutActuallyEscaping` in Swift 3.1
+    public func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> [Iterator.Element] {
+        return /*withoutActuallyEscaping(transform) { transform in*/
+            lazy.map({ (value: $0, comparator: transform($0)) })
+            .sorted(by: { (a, b) in a.comparator < b.comparator })
+            .map({ $0.value })
+        /*}*/
+    }
+    %end
+}
+
+public struct ${type.name}${generics_str(type.generics)} {
+    fileprivate var array: [Element]
+% if type is DESCRIPTOR:
+    fileprivate let areIncreasingInOrdering: (Element, Element) -> Bool
+% elif type is LAZY_MAP: 
+    fileprivate var transform: (Element) -> Comparator
+%end
+}
+
+extension ${type.name} {
+    /// Constructs a `${type.name}` assuing that `array` is already sorted,
+    /// only performing check during testing.
+    public init(unsafeUncheckedFromSorted array: [Element]${arg_str(init_arg(), append=True)}) {
+        assert(array.isSorted(${arg_str(init_arg(), call=True)}))
+        self.array = array
+        % if type is DESCRIPTOR:
+        self.areIncreasingInOrdering = areIncreasingInOrdering
+        % elif type is LAZY_MAP: 
+        self.transform = transform
+        %end
+    }
+    
+    /// Constructs a `${type.name}` if `array` is verified to be sorted, otherwise returns `nil`.
+    public init?(fromSorted array: [Element]${arg_str(init_arg(), append=True)}) {
+        guard array.isSorted(${arg_str(init_arg(), call=True)}) else { return nil }
+        self.array = array
+        % if type is DESCRIPTOR:
+        self.areIncreasingInOrdering = areIncreasingInOrdering
+        % elif type is LAZY_MAP: 
+        self.transform = transform
+        %end
+    }
+    
+    // Constructs a `${type.name}` by sorting `array`.
+    public init(fromUnsorted array: [Element]${arg_str(init_arg(), append=True)}) {
+        self.array = array.sorted(${arg_str(init_arg(), call=True)})
+        % if type is DESCRIPTOR:
+        self.areIncreasingInOrdering = areIncreasingInOrdering
+        % elif type is LAZY_MAP: 
+        self.transform = transform
+        %end
+    }
+    
+    public init(${arg_str(init_arg())}) {
+        self.array = []
+        % if type is DESCRIPTOR:
+        self.areIncreasingInOrdering = areIncreasingInOrdering
+        % elif type is LAZY_MAP: 
+        self.transform = transform
+        %end
+    }
+}
+% if type is NORMAL: 
+
+extension ${type.name}: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Element...) {
+        guard elements.isSorted() else { fatalError("`SortedArray` literal must already be sorted.") }
+        self.array = elements
+    }
+}
+%end
+
+%{        
+    if type.generics['Element'] is None:
+        arr_ext_constraint = ''
+    else:
+        arr_ext_constraint = ' where Element: {}'\
+            .format(type.generics['Element'])
+           
+    arr_init_generics = type.generics.copy()
+    arr_init_generics.pop('Element', None)
+}%
+extension Array${arr_ext_constraint} {
+    public init${generics_str(arr_init_generics)}(_ sortedArray: ${type.name}${generics_str(type.stripped_generics)}) {
+        self = sortedArray.array
+    }
+}
+
+extension ${type.name}: BidirectionalCollection {
+    public var indices: CountableRange<Int> {
+        return array.indices
+    }
+    
+    public func index(after i: Int) -> Int {
+        return array.index(after: i)
+    }
+    
+    public func index(before i: Int) -> Int {
+        return array.index(before: i)
+    }
+
+    public func index(_ i: Int, offsetBy n: Int) -> Int? {
+        return array.index(i, offsetBy: n)
+    }
+    
+    public func index(_ i: Int, offsetBy n: Int, limitedBy limit: Int) -> Int? {
+        return array.index(i, offsetBy: n, limitedBy: limit)
+    }
+    
+    public var startIndex: Int {
+        return array.startIndex
+    }
+    
+    public var endIndex: Int {
+        return array.endIndex
+    }
+    
+    public subscript(index: Int) -> Element {
+        return array[index]
+    }
+}
+
+extension ${type.name} {
+    public subscript(checked index: Int) -> Element {
+        get {
+            return self[index]
+        }
+        set {
+            % if type is LAZY_MAP: 
+            let ${type.comparator('newValue')} = transform(newValue)
+            %end
+            if index - 1 >= array.startIndex {
+                let precedingValue = array[index - 1]
+                % if type is LAZY_MAP: 
+                let ${type.comparator('precedingValue')} = transform(precedingValue)
+                %end
+                guard ${type.compare(type.comparator('precedingValue'), '<=', 
+                                     type.comparator('newValue'))} else {
+                    preconditionFailure("Cannot assign \(newValue) in position after \(precedingValue).") 
+                }
+            }
+            if index + 1 < array.endIndex {
+                let followingValue = array[index + 1]
+                % if type is LAZY_MAP: 
+                let ${type.comparator('followingValue')} = transform(followingValue)
+                %end
+                guard ${type.compare(type.comparator('newValue'), '<=', 
+                                     type.comparator('followingValue'))} else {
+                    preconditionFailure("Cannot assign \(newValue) in position before \(followingValue).") 
+                }
+            }
+            array[index] = newValue
+        }
+    }
+    
+    public subscript(unsafeUnchecked index: Int) -> Element {
+        get {
+            return self[index]
+        }
+        set {
+            #if DEBUG
+                // Check during debug mode
+                self[index] = newValue
+            #else
+                array[index] = newValue
+            #endif
+        }
+    }
+}
+
+extension ${type.name}: CustomStringConvertible, CustomDebugStringConvertible {
+    public var description: String {
+        return array.description
+    }
+    
+    public var debugDescription: String {
+        return array.debugDescription
+    }
+}
+
+extension ${type.name} {
+    public func insertionIndex(of element: Element, for position: IndexPosition = .any,
+                               in range: Range<Int>) -> Int {
+        % if type is LAZY_MAP: 
+        let ${type.comparator('element')} = transform(element)
+        %end
+        var (min, max) = (range.lowerBound, range.upperBound)
+        while min < max {
+            let mid = (max - min) / 2 + min
+            let midElement = self[mid]
+            % if type is LAZY_MAP: 
+            let ${type.comparator('midElement')} = transform(midElement)
+            %end
+            
+            if ${type.compare(type.comparator('midElement'), '<', 
+                              type.comparator('element'))} {
+                min = mid + 1
+            } else if ${type.compare(type.comparator('midElement'), '>', 
+                                     type.comparator('element'))} {
+                max = mid
+            } else {
+                switch position {
+                    case .first: max = mid
+                    case .last:  min = mid + 1
+                    case .any:   return mid
+                }
+            }
+        }
+        assert(min == max)
+        return min
+    }
+    
+    /// The index at which an element would be inserted into the array.
+    public func insertionIndex(of element: Element, for position: IndexPosition = .any) -> Int {
+        return insertionIndex(of: element, for: position, in: Range(array.indices))
+    }
+    
+    @discardableResult 
+    public mutating func insert(_ element: Element, at position: IndexPosition = .any) -> Int {
+        let index = insertionIndex(of: element, for: position)
+        array.insert(element, at: index)
+        return index
+    }
+}
+
+extension ${type.name} {
+    public mutating func insert<S: Sequence>(ContentsOf sequence: S) where S.Iterator.Element == Element {
+        for element in sequence {
+            insert(element)
+        }
+    }
+    % if type is NORMAL: 
+    
+    public mutating func insert(contentsOf sortedArray: SortedArray, at position: IndexPosition = .any) {
+        var index = startIndex
+        for element in sortedArray {
+            index = insertionIndex(of: element, for: position, in: index..<endIndex)
+            array.insert(element, at: index)
+        }
+    }
+    %end
+}
+
+extension ${type.name} {
+    public mutating func insert(_ element: Element, atChecked index: Int) {
+        % if type is LAZY_MAP: 
+        let ${type.comparator('element')} = transform(element)
+        %end
+        if index - 1 >= array.startIndex {
+            let precedingValue = array[index - 1]
+            % if type is LAZY_MAP: 
+            let ${type.comparator('precedingValue')} = transform(precedingValue)
+            %end
+            guard ${type.compare(type.comparator('precedingValue'), '<=', 
+                                 type.comparator('element'))} else {
+                preconditionFailure("Cannot insert \(element) in position after \(precedingValue).") 
+            }
+        }
+        if index < array.endIndex {
+            let followingValue = array[index]
+            % if type is LAZY_MAP: 
+            let ${type.comparator('followingValue')} = transform(followingValue)
+            %end
+            guard ${type.compare(type.comparator('element'), '<=', 
+                                 type.comparator('followingValue'))} else {
+                preconditionFailure("Cannot insert \(element) in position before \(followingValue).") 
+            }
+        }
+        array.insert(element, at: index)
+    }
+    
+    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
+        #if DEBUG
+            // Check during debug mode
+            insert(element, atChecked: index)
+        #else
+            array.insert(element, at: index)
+        #endif
+    }
+}
+
+extension ${type.name} {
+    /// Returns the index where the specified value appears in the specified
+    /// position in the collection.
+    /// - Complexity: O(log(n)), where n is the length of the array.
+    public func index(of element: Element, at position: IndexPosition = .any) -> Int? {
+        let potentialIndex = insertionIndex(of: element, for: position)
+        let potentialElement = self[potentialIndex]
+        % if type is LAZY_MAP: 
+        let ${type.comparator('element')} = transform(element)
+        let ${type.comparator('potentialElement')} = transform(potentialElement)
+        %end
+        guard ${type.compare(type.comparator('element'), '==', 
+                             type.comparator('potentialElement'))} else { return nil }
+        return potentialIndex
+    }
+    
+    /// Returns a Boolean value indicating whether the sequence contains the given element.
+    /// - Complexity: O(log(n)), where n is the length of the array.
+    public func contains(element: Element) -> Bool {
+        return index(of: element) != nil
+    }
+}
+
+extension ${type.name} {
+    public mutating func popLast() -> Element? {
+        return array.popLast()
+    }
+    
+    public mutating func removeAll(keepingCapacity: Bool = false) {
+        array.removeAll(keepingCapacity: keepingCapacity)
+    }
+    
+    public mutating func remove(at index: Int) -> Element {
+        return array.remove(at: index)
+    }
+    
+    public mutating func removeFirst() {
+        array.removeFirst()
+    }
+    
+    public mutating func removeFirst(n: Int) {
+        array.removeFirst(n)
+    }
+    
+    public mutating func removeLast() {
+        array.removeLast()
+    }
+    
+    public mutating func removeSubrange(subRange: Range<Int>) {
+        array.removeSubrange(subRange)
+    }
+    
+    public mutating func removeSubrange(subRange: ClosedRange<Int>) {
+        array.removeSubrange(subRange)
+    }
+    
+    public mutating func removeSubrange(subRange: CountableRange<Int>) {
+        array.removeSubrange(subRange)
+    }
+    
+    public mutating func removeSubrange(subRange: CountableClosedRange<Int>) {
+        array.removeSubrange(subRange)
+    }
+    
+    public mutating func reserveCapacity(minimumCapacity: Int) {
+        array.reserveCapacity(minimumCapacity)
+    }
+}
+% if type is NORMAL: 
+
+// Avoid doing unnecessary work
+extension ${type.name} {
+    public func sorted() -> [Element] {
+        return array
+    }
+
+    public func sorted() -> SortedArray<Element> {
+        return self
+    }
+
+    public func isSorted() -> Bool {
+        return true
+    }
+}
+
+extension ${type.name} {
+    /// Returns the maximum element of the array.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the array.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
+    }
+}
+%end
+
+extension ${type.name} {
+    /// Replaces element at index with a new element, resorting the array afterwards.
+    ///
+    /// Note this is more efficient than simply removing and adding since this function
+    /// will only shift the elements that actually need to move.
+    ///
+    /// - Complexity: O(n), where n is the length of the array.
+    public mutating func replace(at index: Int, with element: Element) {        
+        // Find most efficient position to insert at
+        let oldElement = array[index]
+        % if type is LAZY_MAP: 
+        let ${type.comparator('element')} = transform(element)
+        let ${type.comparator('oldElement')} = transform(oldElement)
+        %end
+        if ${type.compare(type.comparator('oldElement'), '<', 
+                          type.comparator('element'))} {
+            let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
+            array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
+            array[newIndex - 1] = element
+        } else if ${type.compare(type.comparator('oldElement'), '>', 
+                                 type.comparator('element'))} {
+            let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
+            array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
+            array[newIndex] = element
+        } else {
+            array[index] = element
+        }
+    }
+}
+
+%{
+    eq_func_generics = type.generics.copy()
+    if 'Element' in eq_func_generics:
+        eq_func_generics['Element'] = 'Comparable'
+}%
+public func ==${generics_str(eq_func_generics)}(
+    lhs: ${type.name}${generics_str(type.stripped_generics)},
+    rhs: ${type.name}${generics_str(type.stripped_generics)}
+) -> Bool {
+    return lhs.array == rhs.array
+}
+%end

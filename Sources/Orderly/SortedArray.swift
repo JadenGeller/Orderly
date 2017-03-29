@@ -1,108 +1,50 @@
-//
-//  SortedArray.swift
-//  Orderly
-//
-//  Created by Jaden Geller on 1/12/16.
-//  Copyright © 2017 Jaden Geller. All rights reserved.
-//
-
-import Comparator
-
-public struct SortedArray<Element> {
-    fileprivate let ordering: (Element, Element) -> Ordering
-    fileprivate var array: [Element]
-}
-
-extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == Iterator.Element {
-    public func isSorted(by ordering: (Iterator.Element, Iterator.Element) -> Ordering) -> Bool {
-        for (a, b) in zip(self, dropFirst()) {
-            guard ordering(a, b) != .descending else { return false }
+extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == Iterator.Element, Iterator.Element: Comparable {
+    public func isSorted() -> Bool {
+        for (lhs, rhs) in zip(self, self.dropFirst()) {
+            guard lhs <= rhs else { return false }
         }
         return true
     }
 }
 
-extension Sequence where Iterator.Element: Comparable, SubSequence: Sequence, SubSequence.Iterator.Element == Iterator.Element {
-    public var isSorted: Bool {
-        return isSorted(by: <=>)
-    }
+public struct SortedArray<Element: Comparable> {
+    fileprivate var array: [Element]
 }
 
 extension SortedArray {
     /// Constructs a `SortedArray` assuing that `array` is already sorted,
     /// only performing check during testing.
-    public init(unsafeUncheckedFromSorted array: [Element], by ordering: @escaping (Element, Element) -> Ordering) {
-        assert(array.isSorted(by: ordering))
-        self.array = array
-        self.ordering = ordering
-    }
-    
-    /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(fromSorted array: [Element], by ordering: @escaping (Element, Element) -> Ordering) {
-        guard array.isSorted(by: ordering) else { return nil }
-        self.array = array
-        self.ordering = ordering
-    }
-    
-    // Constructs a `SortedArray` by sorting `array`.
-    public init(fromUnsorted array: [Element], by ordering: @escaping (Element, Element) -> Ordering) {
-        self.array = array.sorted(by: { (a, b) in ordering(a, b) == .ascending })
-        self.ordering = ordering
-    }
-    
-    public init(by ordering: @escaping (Element, Element) -> Ordering) {
-        self.array = []
-        self.ordering = ordering
-    }
-}
-
-extension SortedArray where Element: Comparable {
-    /// Constructs a `SortedArray` assuing that `array` is already sorted, performing no check.
     public init(unsafeUncheckedFromSorted array: [Element]) {
-        self.init(unsafeUncheckedFromSorted: array, by: <=>)
+        assert(array.isSorted())
+        self.array = array
     }
     
     /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
     public init?(fromSorted array: [Element]) {
-        self.init(fromSorted: array, by: <=>)
+        guard array.isSorted() else { return nil }
+        self.array = array
     }
     
     // Constructs a `SortedArray` by sorting `array`.
     public init(fromUnsorted array: [Element]) {
-        self.init(fromUnsorted: array, by: <=>)
+        self.array = array.sorted()
     }
     
     public init() {
-        self.init(by: <=>)
+        self.array = []
     }
 }
 
-// FIXME: Requires Swift to support conditional conformances.
-//extension SortedArray: ArrayLiteralConvertible where Element: Comparable {
-//    public init(arrayLiteral elements: Element...) {
-//        self.init(unsorted: elements)
-//    }
-//}
+extension SortedArray: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: Element...) {
+        guard elements.isSorted() else { fatalError("`SortedArray` literal must already be sorted.") }
+        self.array = elements
+    }
+}
 
-extension Array {
+extension Array where Element: Comparable {
     public init(_ sortedArray: SortedArray<Element>) {
         self = sortedArray.array
-    }
-}
-
-extension Sequence {
-    public func sorted(by areInIncreasingOrder: @escaping (Iterator.Element, Iterator.Element) -> Bool) -> SortedArray<Iterator.Element> {
-        return sorted(by: { (a, b) in Ordering(a, b, by: areInIncreasingOrder) })
-    }
-    
-    public func sorted(by ordering: @escaping (Iterator.Element, Iterator.Element) -> Ordering) -> SortedArray<Iterator.Element> {
-        return SortedArray(fromUnsorted: Array(self), by: ordering)
-    }
-}
-
-extension Sequence where Iterator.Element: Comparable {
-    public func sorted() -> SortedArray<Iterator.Element> {
-        return sorted(by: <=>)
     }
 }
 
@@ -141,21 +83,21 @@ extension SortedArray: BidirectionalCollection {
 }
 
 extension SortedArray {
-    public subscript(unsafe index: Int) -> Element {
+    public subscript(checked index: Int) -> Element {
         get {
             return self[index]
         }
         set {
             if index - 1 >= array.startIndex {
-                let valueBefore = array[index - 1]
-                guard ordering(valueBefore, newValue) != .descending else {
-                    preconditionFailure("Cannot assign \(newValue) in position after \(valueBefore).") 
+                let precedingValue = array[index - 1]
+                guard precedingValue <= newValue else {
+                    preconditionFailure("Cannot assign \(newValue) in position after \(precedingValue).") 
                 }
             }
             if index + 1 < array.endIndex {
-                let valueAfter = array[index + 1]
-                guard ordering(newValue, valueAfter) != .descending else {
-                    preconditionFailure("Cannot assign \(newValue) in position before \(valueAfter).") 
+                let followingValue = array[index + 1]
+                guard newValue <= followingValue else {
+                    preconditionFailure("Cannot assign \(newValue) in position before \(followingValue).") 
                 }
             }
             array[index] = newValue
@@ -187,17 +129,6 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
     }
 }
 
-/// Option that indices which insertion index to use when multiple
-/// possibilities exist (in the case of duplicate matching elements).
-public enum IndexPosition {
-    /// The first possible index.
-    case first
-    /// The last possible index.
-    case last
-    /// The most efficient index to locate.
-    case any
-}
-
 extension SortedArray {
     public func insertionIndex(of element: Element, for position: IndexPosition = .any,
                                in range: Range<Int>) -> Int {
@@ -205,11 +136,12 @@ extension SortedArray {
         while min < max {
             let mid = (max - min) / 2 + min
             let midElement = self[mid]
-
-            switch ordering(midElement, element) {
-            case .ascending:  min = mid + 1
-            case .descending: max = mid
-            case .same:
+            
+            if midElement < element {
+                min = mid + 1
+            } else if midElement > element {
+                max = mid
+            } else {
                 switch position {
                     case .first: max = mid
                     case .last:  min = mid + 1
@@ -226,7 +158,8 @@ extension SortedArray {
         return insertionIndex(of: element, for: position, in: Range(array.indices))
     }
     
-    @discardableResult public mutating func insert(_ element: Element, at position: IndexPosition = .any) -> Int {
+    @discardableResult 
+    public mutating func insert(_ element: Element, at position: IndexPosition = .any) -> Int {
         let index = insertionIndex(of: element, for: position)
         array.insert(element, at: index)
         return index
@@ -250,17 +183,17 @@ extension SortedArray {
 }
 
 extension SortedArray {
-    public mutating func insert(_ element: Element, atUnsafe index: Int) {
+    public mutating func insert(_ element: Element, atChecked index: Int) {
         if index - 1 >= array.startIndex {
-            let valueBefore = array[index - 1]
-            guard ordering(valueBefore, element) != .descending else {
-                preconditionFailure("Cannot insert \(element) in position after \(valueBefore).") 
+            let precedingValue = array[index - 1]
+            guard precedingValue <= element else {
+                preconditionFailure("Cannot insert \(element) in position after \(precedingValue).") 
             }
         }
         if index < array.endIndex {
-            let valueAfter = array[index]
-            guard ordering(element, valueAfter) != .descending else {
-                preconditionFailure("Cannot insert \(element) in position before \(valueAfter).") 
+            let followingValue = array[index]
+            guard element <= followingValue else {
+                preconditionFailure("Cannot insert \(element) in position before \(followingValue).") 
             }
         }
         array.insert(element, at: index)
@@ -276,49 +209,21 @@ extension SortedArray {
     }
 }
 
-// FIXME: We have no way of knowing whether the `Comparable` instance was used...
-//extension SortedArray where Element: Comparable {
-//    public func sorted() -> [Element] {
-//        return array
-//    }
-//
-//    public var isSorted: Bool {
-//        return true
-//    }
-//}
-
 extension SortedArray {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the array.
-    public func index(of element: Element, at position: IndexPosition) -> Int? {
+    public func index(of element: Element, at position: IndexPosition = .any) -> Int? {
         let potentialIndex = insertionIndex(of: element, for: position)
-        guard ordering(element, self[potentialIndex]) == .same else { return nil }
+        let potentialElement = self[potentialIndex]
+        guard element == potentialElement else { return nil }
         return potentialIndex
-    }
-    
-    /// Returns the first index where the specified value appears in the collection.
-    /// - Complexity: O(log(n)), where n is the length of the array.
-    public func index(of element: Element) -> Int? {
-        return index(of: element, at: .first)
     }
     
     /// Returns a Boolean value indicating whether the sequence contains the given element.
     /// - Complexity: O(log(n)), where n is the length of the array.
     public func contains(element: Element) -> Bool {
         return index(of: element) != nil
-    }
-    
-    /// Returns the maximum element of the array.
-    /// - Complexity: O(1)
-    @warn_unqualified_access public func max() -> Element? {
-        return last
-    }
-    
-    /// Returns the minimum element of the array.
-    /// - Complexity: O(1)
-    @warn_unqualified_access public func min() -> Element? {
-        return first
     }
 }
 
@@ -368,6 +273,35 @@ extension SortedArray {
     }
 }
 
+// Avoid doing unnecessary work
+extension SortedArray {
+    public func sorted() -> [Element] {
+        return array
+    }
+
+    public func sorted() -> SortedArray<Element> {
+        return self
+    }
+
+    public func isSorted() -> Bool {
+        return true
+    }
+}
+
+extension SortedArray {
+    /// Returns the maximum element of the array.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the array.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
+    }
+}
+
 extension SortedArray {
     /// Replaces element at index with a new element, resorting the array afterwards.
     ///
@@ -377,22 +311,24 @@ extension SortedArray {
     /// - Complexity: O(n), where n is the length of the array.
     public mutating func replace(at index: Int, with element: Element) {        
         // Find most efficient position to insert at
-        switch ordering(array[index], element) {
-            case .descending:
-                let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
-                array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
-                array[newIndex] = element
-            case .ascending:
-                let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
-                array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
-                array[newIndex - 1] = element
-            case .same:
-                array[index] = element
+        let oldElement = array[index]
+        if oldElement < element {
+            let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
+            array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
+            array[newIndex - 1] = element
+        } else if oldElement > element {
+            let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
+            array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
+            array[newIndex] = element
+        } else {
+            array[index] = element
         }
     }
 }
 
-public func ==<Element: Equatable>(lhs: SortedArray<Element>, rhs: SortedArray<Element>) -> Bool {
+public func ==<Element: Comparable>(
+    lhs: SortedArray<Element>,
+    rhs: SortedArray<Element>
+) -> Bool {
     return lhs.array == rhs.array
 }
-
