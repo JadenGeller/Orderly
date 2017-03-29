@@ -143,7 +143,11 @@ extension LazyMapSortedArray: CustomStringConvertible, CustomDebugStringConverti
 extension LazyMapSortedArray {
     public func insertionIndex(of element: Element, for position: IndexPosition = .any,
                                in range: Range<Int>) -> Int {
-        let elementComparator = transform(element)
+        return insertionIndex(ofComparator: transform(element), for: position, in: range)
+    }
+    
+    public func insertionIndex(ofComparator elementComparator: Comparator, for position: IndexPosition = .any,
+                               in range: Range<Int>) -> Int {
         var (min, max) = (range.lowerBound, range.upperBound)
         while min < max {
             let mid = (max - min) / 2 + min
@@ -164,6 +168,10 @@ extension LazyMapSortedArray {
         }
         assert(min == max)
         return min
+    }
+    
+    public func insertionIndex(ofComparator elementComparator: Comparator, for position: IndexPosition = .any) -> Int {
+        return insertionIndex(ofComparator: elementComparator, for: position, in: Range(array.indices))
     }
     
     /// The index at which an element would be inserted into the array.

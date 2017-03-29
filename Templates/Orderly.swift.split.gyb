@@ -303,11 +303,20 @@ extension ${type.name}: CustomStringConvertible, CustomDebugStringConvertible {
 }
 
 extension ${type.name} {
+    % if type is LAZY_MAP:
     public func insertionIndex(of element: Element, for position: IndexPosition = .any,
                                in range: Range<Int>) -> Int {
-        % if type is LAZY_MAP: 
-        let ${type.comparator('element')} = transform(element)
-        %end
+        return insertionIndex(ofComparator: transform(element), for: position, in: range)
+    }
+    %end
+    
+    % if type is LAZY_MAP:
+    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for position: IndexPosition = .any,
+                               in range: Range<Int>) -> Int {
+    % else:
+    public func insertionIndex(of element: Element, for position: IndexPosition = .any,
+                               in range: Range<Int>) -> Int {
+    %end
         var (min, max) = (range.lowerBound, range.upperBound)
         while min < max {
             let mid = (max - min) / 2 + min
@@ -333,6 +342,12 @@ extension ${type.name} {
         assert(min == max)
         return min
     }
+    % if type is LAZY_MAP:
+    
+    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for position: IndexPosition = .any) -> Int {
+        return insertionIndex(ofComparator: ${type.comparator('element')}, for: position, in: Range(array.indices))
+    }
+    %end
     
     /// The index at which an element would be inserted into the array.
     public func insertionIndex(of element: Element, for position: IndexPosition = .any) -> Int {

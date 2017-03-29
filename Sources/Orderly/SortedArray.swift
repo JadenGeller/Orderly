@@ -130,6 +130,7 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 }
 
 extension SortedArray {
+    
     public func insertionIndex(of element: Element, for position: IndexPosition = .any,
                                in range: Range<Int>) -> Int {
         var (min, max) = (range.lowerBound, range.upperBound)
