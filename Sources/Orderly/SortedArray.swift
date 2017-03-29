@@ -167,7 +167,7 @@ extension SortedArray {
 }
 
 extension SortedArray {
-    public mutating func insert<S: Sequence>(ContentsOf sequence: S) where S.Iterator.Element == Element {
+    public mutating func insert<S: Sequence>(contentsOf sequence: S) where S.Iterator.Element == Element {
         for element in sequence {
             insert(element)
         }
