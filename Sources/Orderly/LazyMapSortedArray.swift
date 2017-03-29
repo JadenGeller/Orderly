@@ -51,7 +51,7 @@ extension LazyMapSortedArray {
 }
 
 extension Array {
-    public init<Comparator: Comparable>(_ sortedArray: LazyMapSortedArray<Comparator, Element>) {
+    public init<Comparator: Comparable>(_ sortedArray: LazyMapSortedArray<Element, Comparator>) {
         self = sortedArray.array
     }
 }
@@ -310,8 +310,8 @@ extension LazyMapSortedArray {
 }
 
 public func ==<Element: Comparable, Comparator: Comparable>(
-    lhs: LazyMapSortedArray<Comparator, Element>,
-    rhs: LazyMapSortedArray<Comparator, Element>
+    lhs: LazyMapSortedArray<Element, Comparator>,
+    rhs: LazyMapSortedArray<Element, Comparator>
 ) -> Bool {
     return lhs.array == rhs.array
 }

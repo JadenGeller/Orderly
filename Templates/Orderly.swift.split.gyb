@@ -29,7 +29,7 @@
             
         @property
         def stripped_generics(self):
-            return { arg: None for arg in self.generics }
+            return OrderedDict([(arg, None) for arg in self.generics])
                                                         
         def comparator(self, name):
             if self is LAZY_MAP: 
