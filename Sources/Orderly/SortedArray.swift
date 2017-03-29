@@ -131,7 +131,7 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 
 extension SortedArray {
     
-    public func insertionIndex(of element: Element, for position: IndexPosition = .any,
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
         var (min, max) = (range.lowerBound, range.upperBound)
         while min < max {
@@ -143,9 +143,9 @@ extension SortedArray {
             } else if midElement > element {
                 max = mid
             } else {
-                switch position {
-                    case .first: max = mid
-                    case .last:  min = mid + 1
+                switch selection {
+                    case .least: max = mid
+                    case .greatest:  min = mid + 1
                     case .any:   return mid
                 }
             }
@@ -155,13 +155,13 @@ extension SortedArray {
     }
     
     /// The index at which an element would be inserted into the array.
-    public func insertionIndex(of element: Element, for position: IndexPosition = .any) -> Int {
-        return insertionIndex(of: element, for: position, in: Range(array.indices))
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        return insertionIndex(of: element, for: selection, in: Range(array.indices))
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at position: IndexPosition = .any) -> Int {
-        let index = insertionIndex(of: element, for: position)
+    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+        let index = insertionIndex(of: element, for: selection)
         array.insert(element, at: index)
         return index
     }
@@ -174,10 +174,10 @@ extension SortedArray {
         }
     }
     
-    public mutating func insert(contentsOf sortedArray: SortedArray, at position: IndexPosition = .any) {
+    public mutating func insert(contentsOf sortedArray: SortedArray, at selection: BoundSelection = .any) {
         var index = startIndex
         for element in sortedArray {
-            index = insertionIndex(of: element, for: position, in: index..<endIndex)
+            index = insertionIndex(of: element, for: selection, in: index..<endIndex)
             array.insert(element, at: index)
         }
     }
@@ -214,8 +214,8 @@ extension SortedArray {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the array.
-    public func index(of element: Element, at position: IndexPosition = .any) -> Int? {
-        let potentialIndex = insertionIndex(of: element, for: position)
+    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+        let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         guard element == potentialElement else { return nil }
         return potentialIndex
@@ -314,11 +314,11 @@ extension SortedArray {
         // Find most efficient position to insert at
         let oldElement = array[index]
         if oldElement < element {
-            let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
+            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<array.endIndex)
             array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
             array[newIndex - 1] = element
         } else if oldElement > element {
-            let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
+            let newIndex = insertionIndex(of: element, for: .greatest, in: array.startIndex..<(index + 1))
             array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
             array[newIndex] = element
         } else {

@@ -65,14 +65,14 @@
                 for arg, constraint in args.iteritems())
             return '<{}>'.format(args_str)
 }%
-// FILE: IndexPosition.swift
+// FILE: BoundSelection.swift
 /// Option that indices which insertion index to use when multiple
 /// possibilities exist (in the case of duplicate matching elements).
-public enum IndexPosition {
-    /// The first possible index.
-    case first
-    /// The last possible index.
-    case last
+public enum BoundSelection {
+    /// The least possible index.
+    case least
+    /// The greatest possible index.
+    case greatest
     /// The most efficient index to locate.
     case any
 }
@@ -304,17 +304,17 @@ extension ${type.name}: CustomStringConvertible, CustomDebugStringConvertible {
 
 extension ${type.name} {
     % if type is LAZY_MAP:
-    public func insertionIndex(of element: Element, for position: IndexPosition = .any,
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
-        return insertionIndex(ofComparator: transform(element), for: position, in: range)
+        return insertionIndex(ofComparator: transform(element), for: selection, in: range)
     }
     %end
     
     % if type is LAZY_MAP:
-    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for position: IndexPosition = .any,
+    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
     % else:
-    public func insertionIndex(of element: Element, for position: IndexPosition = .any,
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
     %end
         var (min, max) = (range.lowerBound, range.upperBound)
@@ -332,9 +332,9 @@ extension ${type.name} {
                                      type.comparator('element'))} {
                 max = mid
             } else {
-                switch position {
-                    case .first: max = mid
-                    case .last:  min = mid + 1
+                switch selection {
+                    case .least: max = mid
+                    case .greatest:  min = mid + 1
                     case .any:   return mid
                 }
             }
@@ -344,19 +344,19 @@ extension ${type.name} {
     }
     % if type is LAZY_MAP:
     
-    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for position: IndexPosition = .any) -> Int {
-        return insertionIndex(ofComparator: ${type.comparator('element')}, for: position, in: Range(array.indices))
+    public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for selection: BoundSelection = .any) -> Int {
+        return insertionIndex(ofComparator: ${type.comparator('element')}, for: selection, in: Range(array.indices))
     }
     %end
     
     /// The index at which an element would be inserted into the array.
-    public func insertionIndex(of element: Element, for position: IndexPosition = .any) -> Int {
-        return insertionIndex(of: element, for: position, in: Range(array.indices))
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        return insertionIndex(of: element, for: selection, in: Range(array.indices))
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at position: IndexPosition = .any) -> Int {
-        let index = insertionIndex(of: element, for: position)
+    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+        let index = insertionIndex(of: element, for: selection)
         array.insert(element, at: index)
         return index
     }
@@ -370,10 +370,10 @@ extension ${type.name} {
     }
     % if type is NORMAL: 
     
-    public mutating func insert(contentsOf sortedArray: SortedArray, at position: IndexPosition = .any) {
+    public mutating func insert(contentsOf sortedArray: SortedArray, at selection: BoundSelection = .any) {
         var index = startIndex
         for element in sortedArray {
-            index = insertionIndex(of: element, for: position, in: index..<endIndex)
+            index = insertionIndex(of: element, for: selection, in: index..<endIndex)
             array.insert(element, at: index)
         }
     }
@@ -422,8 +422,8 @@ extension ${type.name} {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the array.
-    public func index(of element: Element, at position: IndexPosition = .any) -> Int? {
-        let potentialIndex = insertionIndex(of: element, for: position)
+    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+        let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         % if type is LAZY_MAP: 
         let ${type.comparator('element')} = transform(element)
@@ -534,12 +534,12 @@ extension ${type.name} {
         %end
         if ${type.compare(type.comparator('oldElement'), '<', 
                           type.comparator('element'))} {
-            let newIndex = insertionIndex(of: element, for: .first, in: (index + 1)..<array.endIndex)
+            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<array.endIndex)
             array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
             array[newIndex - 1] = element
         } else if ${type.compare(type.comparator('oldElement'), '>', 
                                  type.comparator('element'))} {
-            let newIndex = insertionIndex(of: element, for: .last, in: array.startIndex..<(index + 1))
+            let newIndex = insertionIndex(of: element, for: .greatest, in: array.startIndex..<(index + 1))
             array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
             array[newIndex] = element
         } else {
