@@ -1,6 +1,6 @@
 %{
     from enum import Enum
-    from collections import namedtuple
+    from collections import namedtuple, OrderedDict
     
     class SortedArrayType(Enum):
         NORMAL     = 1
@@ -22,9 +22,9 @@
         @property
         def generics(self):
             return {
-                NORMAL:     {'Element': 'Comparable'},
-                DESCRIPTOR: {'Element': None},
-                LAZY_MAP:   {'Element': None, 'Comparator': 'Comparable'}
+                NORMAL:     OrderedDict([('Element', 'Comparable')]),
+                DESCRIPTOR: OrderedDict([('Element', None)]),
+                LAZY_MAP:   OrderedDict([('Element', None), ('Comparator', 'Comparable')])
             }[self]
             
         @property

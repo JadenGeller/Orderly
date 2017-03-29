@@ -17,7 +17,7 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     }
 }
 
-public struct LazyMapSortedArray<Comparator: Comparable, Element> {
+public struct LazyMapSortedArray<Element, Comparator: Comparable> {
     fileprivate var array: [Element]
     fileprivate var transform: (Element) -> Comparator
 }
@@ -309,7 +309,7 @@ extension LazyMapSortedArray {
     }
 }
 
-public func ==<Comparator: Comparable, Element: Comparable>(
+public func ==<Element: Comparable, Comparator: Comparable>(
     lhs: LazyMapSortedArray<Comparator, Element>,
     rhs: LazyMapSortedArray<Comparator, Element>
 ) -> Bool {
