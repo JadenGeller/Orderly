@@ -8,77 +8,72 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
 }
 
 public struct SortedArray<Element: Comparable> {
-    fileprivate var array: [Element]
+    fileprivate var base: [Element]
 }
 
 extension SortedArray {
-    /// Constructs a `SortedArray` assuing that `array` is already sorted,
+    /// Constructs a `SortedArray` assuing that `base` is already sorted,
     /// only performing check during testing.
-    public init(uncheckedSorted array: [Element]) {
-        assert(array.isSorted())
-        self.array = array
+    public init(uncheckedSorted base: [Element]) {
+        assert(base.isSorted())
+        self.base = base
     }
     
-    /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(checkingSorted array: [Element]) {
-        guard array.isSorted() else { return nil }
-        self.array = array
+    /// Constructs a `SortedArray` if `base` is verified to be sorted, otherwise returns `nil`.
+    public init?(checkingSorted base: [Element]) {
+        guard base.isSorted() else { return nil }
+        self.base = base
     }
     
-    // Constructs a `SortedArray` by sorting `array`.
-    public init(sorting array: [Element]) {
-        self.array = array.sorted()
+    // Constructs a `SortedArray` by sorting `base`.
+    public init(sorting base: [Element]) {
+        self.base = base.sorted()
     }
     
     public init() {
-        self.array = []
+        self.base = []
     }
 }
 
 extension SortedArray: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: Element...) {
         guard elements.isSorted() else { fatalError("`SortedArray` literal must already be sorted.") }
-        self.array = elements
+        self.base = elements
     }
 }
 
-extension Array where Element: Comparable {
-    public init(_ sortedArray: SortedArray<Element>) {
-        self = sortedArray.array
-    }
-}
 
 extension SortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
-        return array.indices
+        return base.indices
     }
     
     public func index(after i: Int) -> Int {
-        return array.index(after: i)
+        return base.index(after: i)
     }
     
     public func index(before i: Int) -> Int {
-        return array.index(before: i)
+        return base.index(before: i)
     }
 
     public func index(_ i: Int, offsetBy n: Int) -> Int? {
-        return array.index(i, offsetBy: n)
+        return base.index(i, offsetBy: n)
     }
     
     public func index(_ i: Int, offsetBy n: Int, limitedBy limit: Int) -> Int? {
-        return array.index(i, offsetBy: n, limitedBy: limit)
+        return base.index(i, offsetBy: n, limitedBy: limit)
     }
     
     public var startIndex: Int {
-        return array.startIndex
+        return base.startIndex
     }
     
     public var endIndex: Int {
-        return array.endIndex
+        return base.endIndex
     }
     
     public subscript(index: Int) -> Element {
-        return array[index]
+        return base[index]
     }
 }
 
@@ -88,19 +83,19 @@ extension SortedArray {
             return self[index]
         }
         set {
-            if index - 1 >= array.startIndex {
-                let precedingValue = array[index - 1]
+            if index - 1 >= base.startIndex {
+                let precedingValue = base[index - 1]
                 guard precedingValue <= newValue else {
                     preconditionFailure("Cannot assign \(newValue) in position after \(precedingValue).") 
                 }
             }
-            if index + 1 < array.endIndex {
-                let followingValue = array[index + 1]
+            if index + 1 < base.endIndex {
+                let followingValue = base[index + 1]
                 guard newValue <= followingValue else {
                     preconditionFailure("Cannot assign \(newValue) in position before \(followingValue).") 
                 }
             }
-            array[index] = newValue
+            base[index] = newValue
         }
     }
     
@@ -113,7 +108,7 @@ extension SortedArray {
                 // Check during debug mode
                 self[index] = newValue
             #else
-                array[index] = newValue
+                base[index] = newValue
             #endif
         }
     }
@@ -121,11 +116,11 @@ extension SortedArray {
 
 extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
-        return array.description
+        return base.description
     }
     
     public var debugDescription: String {
-        return array.debugDescription
+        return base.debugDescription
     }
 }
 
@@ -154,15 +149,15 @@ extension SortedArray {
         return min
     }
     
-    /// The index at which an element would be inserted into the array.
+    /// The index at which an element would be inserted into the base.
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(of: element, for: selection, in: Range(array.indices))
+        return insertionIndex(of: element, for: selection, in: Range(base.indices))
     }
     
     @discardableResult 
     public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
-        array.insert(element, at: index)
+        base.insert(element, at: index)
         return index
     }
 }
@@ -178,26 +173,26 @@ extension SortedArray {
         var index = startIndex
         for element in sortedArray {
             index = insertionIndex(of: element, for: selection, in: index..<endIndex)
-            array.insert(element, at: index)
+            base.insert(element, at: index)
         }
     }
 }
 
 extension SortedArray {
     public mutating func insert(_ element: Element, atChecked index: Int) {
-        if index - 1 >= array.startIndex {
-            let precedingValue = array[index - 1]
+        if index - 1 >= base.startIndex {
+            let precedingValue = base[index - 1]
             guard precedingValue <= element else {
                 preconditionFailure("Cannot insert \(element) in position after \(precedingValue).") 
             }
         }
-        if index < array.endIndex {
-            let followingValue = array[index]
+        if index < base.endIndex {
+            let followingValue = base[index]
             guard element <= followingValue else {
                 preconditionFailure("Cannot insert \(element) in position before \(followingValue).") 
             }
         }
-        array.insert(element, at: index)
+        base.insert(element, at: index)
     }
     
     public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
@@ -205,7 +200,7 @@ extension SortedArray {
             // Check during debug mode
             insert(element, atChecked: index)
         #else
-            array.insert(element, at: index)
+            base.insert(element, at: index)
         #endif
     }
 }
@@ -213,7 +208,7 @@ extension SortedArray {
 extension SortedArray {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
-    /// - Complexity: O(log(n)), where n is the length of the array.
+    /// - Complexity: O(log(n)), where n is the length of the base.
     public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
@@ -222,7 +217,7 @@ extension SortedArray {
     }
     
     /// Returns a Boolean value indicating whether the sequence contains the given element.
-    /// - Complexity: O(log(n)), where n is the length of the array.
+    /// - Complexity: O(log(n)), where n is the length of the base.
     public func contains(element: Element) -> Bool {
         return index(of: element) != nil
     }
@@ -230,58 +225,58 @@ extension SortedArray {
 
 extension SortedArray {
     public mutating func popLast() -> Element? {
-        return array.popLast()
+        return base.popLast()
     }
     
     public mutating func removeAll(keepingCapacity: Bool = false) {
-        array.removeAll(keepingCapacity: keepingCapacity)
+        base.removeAll(keepingCapacity: keepingCapacity)
     }
     
     public mutating func remove(at index: Int) -> Element {
-        return array.remove(at: index)
+        return base.remove(at: index)
     }
     
     public mutating func removeFirst() {
-        array.removeFirst()
+        base.removeFirst()
     }
     
     public mutating func removeFirst(n: Int) {
-        array.removeFirst(n)
+        base.removeFirst(n)
     }
     
     public mutating func removeLast() {
-        array.removeLast()
+        base.removeLast()
     }
     
     public mutating func removeSubrange(subRange: Range<Int>) {
-        array.removeSubrange(subRange)
+        base.removeSubrange(subRange)
     }
     
     public mutating func removeSubrange(subRange: ClosedRange<Int>) {
-        array.removeSubrange(subRange)
+        base.removeSubrange(subRange)
     }
     
     public mutating func removeSubrange(subRange: CountableRange<Int>) {
-        array.removeSubrange(subRange)
+        base.removeSubrange(subRange)
     }
     
     public mutating func removeSubrange(subRange: CountableClosedRange<Int>) {
-        array.removeSubrange(subRange)
+        base.removeSubrange(subRange)
     }
     
     public mutating func reserveCapacity(minimumCapacity: Int) {
-        array.reserveCapacity(minimumCapacity)
+        base.reserveCapacity(minimumCapacity)
     }
 }
 
 // Avoid doing unnecessary work
 extension SortedArray {
     public func sorted() -> [Element] {
-        return array
+            return base
     }
 
     public func sorted() -> SortedArray<Element> {
-        return self
+            return self
     }
 
     public func isSorted() -> Bool {
@@ -290,13 +285,13 @@ extension SortedArray {
 }
 
 extension SortedArray {
-    /// Returns the maximum element of the array.
+    /// Returns the maximum element of the base.
     /// - Complexity: O(1)
     @warn_unqualified_access public func max() -> Element? {
         return last
     }
     
-    /// Returns the minimum element of the array.
+    /// Returns the minimum element of the base.
     /// - Complexity: O(1)
     @warn_unqualified_access public func min() -> Element? {
         return first
@@ -304,25 +299,25 @@ extension SortedArray {
 }
 
 extension SortedArray {
-    /// Replaces element at index with a new element, resorting the array afterwards.
+    /// Replaces element at index with a new element, resorting the base afterwards.
     ///
     /// Note this is more efficient than simply removing and adding since this function
     /// will only shift the elements that actually need to move.
     ///
-    /// - Complexity: O(n), where n is the length of the array.
+    /// - Complexity: O(n), where n is the length of the base.
     public mutating func replace(at index: Int, with element: Element) {        
         // Find most efficient position to insert at
-        let oldElement = array[index]
+        let oldElement = base[index]
         if oldElement < element {
-            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<array.endIndex)
-            array[index..<(newIndex - 1)] = array[(index + 1)..<newIndex]
-            array[newIndex - 1] = element
+            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<base.endIndex)
+            base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
+            base[newIndex - 1] = element
         } else if oldElement > element {
-            let newIndex = insertionIndex(of: element, for: .greatest, in: array.startIndex..<(index + 1))
-            array[(newIndex + 1)..<(index + 1)] = array[newIndex..<index]
-            array[newIndex] = element
+            let newIndex = insertionIndex(of: element, for: .greatest, in: base.startIndex..<(index + 1))
+            base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
+            base[newIndex] = element
         } else {
-            array[index] = element
+            base[index] = element
         }
     }
 }
@@ -331,5 +326,5 @@ public func ==<Element: Comparable>(
     lhs: SortedArray<Element>,
     rhs: SortedArray<Element>
 ) -> Bool {
-    return lhs.array == rhs.array
+    return lhs.base == rhs.base
 }
