@@ -15,21 +15,21 @@ public struct DescriptorSortedArray<Element> {
 extension DescriptorSortedArray {
     /// Constructs a `DescriptorSortedArray` assuing that `array` is already sorted,
     /// only performing check during testing.
-    public init(unsafeUncheckedFromSorted array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
+    public init(uncheckedSorted array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         assert(array.isSorted(by: areIncreasingInOrdering))
         self.array = array
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
     
     /// Constructs a `DescriptorSortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(fromSorted array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
+    public init?(checkingSorted array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         guard array.isSorted(by: areIncreasingInOrdering) else { return nil }
         self.array = array
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
     
     // Constructs a `DescriptorSortedArray` by sorting `array`.
-    public init(fromUnsorted array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
+    public init(sorting array: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         self.array = array.sorted(by: areIncreasingInOrdering)
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }

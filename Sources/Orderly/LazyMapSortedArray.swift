@@ -25,21 +25,21 @@ public struct LazyMapSortedArray<Element, Comparator: Comparable> {
 extension LazyMapSortedArray {
     /// Constructs a `LazyMapSortedArray` assuing that `array` is already sorted,
     /// only performing check during testing.
-    public init(unsafeUncheckedFromSorted array: [Element], on transform: @escaping (Element) -> Comparator) {
+    public init(uncheckedSorted array: [Element], on transform: @escaping (Element) -> Comparator) {
         assert(array.isSorted(on: transform))
         self.array = array
         self.transform = transform
     }
     
     /// Constructs a `LazyMapSortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(fromSorted array: [Element], on transform: @escaping (Element) -> Comparator) {
+    public init?(checkingSorted array: [Element], on transform: @escaping (Element) -> Comparator) {
         guard array.isSorted(on: transform) else { return nil }
         self.array = array
         self.transform = transform
     }
     
     // Constructs a `LazyMapSortedArray` by sorting `array`.
-    public init(fromUnsorted array: [Element], on transform: @escaping (Element) -> Comparator) {
+    public init(sorting array: [Element], on transform: @escaping (Element) -> Comparator) {
         self.array = array.sorted(on: transform)
         self.transform = transform
     }

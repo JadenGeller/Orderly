@@ -14,19 +14,19 @@ public struct SortedArray<Element: Comparable> {
 extension SortedArray {
     /// Constructs a `SortedArray` assuing that `array` is already sorted,
     /// only performing check during testing.
-    public init(unsafeUncheckedFromSorted array: [Element]) {
+    public init(uncheckedSorted array: [Element]) {
         assert(array.isSorted())
         self.array = array
     }
     
     /// Constructs a `SortedArray` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(fromSorted array: [Element]) {
+    public init?(checkingSorted array: [Element]) {
         guard array.isSorted() else { return nil }
         self.array = array
     }
     
     // Constructs a `SortedArray` by sorting `array`.
-    public init(fromUnsorted array: [Element]) {
+    public init(sorting array: [Element]) {
         self.array = array.sorted()
     }
     

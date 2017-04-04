@@ -144,7 +144,7 @@ public struct ${type.name}${generics_str(type.generics)} {
 extension ${type.name} {
     /// Constructs a `${type.name}` assuing that `array` is already sorted,
     /// only performing check during testing.
-    public init(unsafeUncheckedFromSorted array: [Element]${arg_str(init_arg(), append=True)}) {
+    public init(uncheckedSorted array: [Element]${arg_str(init_arg(), append=True)}) {
         assert(array.isSorted(${arg_str(init_arg(), call=True)}))
         self.array = array
         % if type is DESCRIPTOR:
@@ -155,7 +155,7 @@ extension ${type.name} {
     }
     
     /// Constructs a `${type.name}` if `array` is verified to be sorted, otherwise returns `nil`.
-    public init?(fromSorted array: [Element]${arg_str(init_arg(), append=True)}) {
+    public init?(checkingSorted array: [Element]${arg_str(init_arg(), append=True)}) {
         guard array.isSorted(${arg_str(init_arg(), call=True)}) else { return nil }
         self.array = array
         % if type is DESCRIPTOR:
@@ -166,7 +166,7 @@ extension ${type.name} {
     }
     
     // Constructs a `${type.name}` by sorting `array`.
-    public init(fromUnsorted array: [Element]${arg_str(init_arg(), append=True)}) {
+    public init(sorting array: [Element]${arg_str(init_arg(), append=True)}) {
         self.array = array.sorted(${arg_str(init_arg(), call=True)})
         % if type is DESCRIPTOR:
         self.areIncreasingInOrdering = areIncreasingInOrdering
