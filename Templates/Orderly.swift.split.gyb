@@ -347,30 +347,30 @@ extension ${full_name} {
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
     %end
-        var (min, max) = (range.lowerBound, range.upperBound)
-        while min < max {
-            let mid = (max - min) / 2 + min
-            let midElement = self[mid]
+        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+        while lowerBound < upperBound {
+            let middleBound = (upperBound - lowerBound) / 2 + lowerBound
+            let middleElement = self[middleBound]
             % if type is LAZY_MAP: 
-            let ${type.comparator('midElement')} = transform(midElement)
+            let ${type.comparator('middleElement')} = transform(middleElement)
             %end
             
-            if ${type.compare(type.comparator('midElement'), '<', 
+            if ${type.compare(type.comparator('middleElement'), '<', 
                               type.comparator('element'))} {
-                min = mid + 1
-            } else if ${type.compare(type.comparator('midElement'), '>', 
+                lowerBound = middleBound + 1
+            } else if ${type.compare(type.comparator('middleElement'), '>', 
                                      type.comparator('element'))} {
-                max = mid
+                upperBound = middleBound
             } else {
                 switch selection {
-                    case .least: max = mid
-                    case .greatest:  min = mid + 1
-                    case .any:   return mid
+                    case .least:    upperBound = middleBound
+                    case .greatest: lowerBound = middleBound + 1
+                    case .any:      return middleBound
                 }
             }
         }
-        assert(min == max)
-        return min
+        assert(lowerBound == upperBound)
+        return lowerBound
     }
     % if type is LAZY_MAP:
     

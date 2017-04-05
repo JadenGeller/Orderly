@@ -148,26 +148,26 @@ extension LazyMapSortedArray {
     
     public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
-        var (min, max) = (range.lowerBound, range.upperBound)
-        while min < max {
-            let mid = (max - min) / 2 + min
-            let midElement = self[mid]
-            let midElementComparator = transform(midElement)
+        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+        while lowerBound < upperBound {
+            let middleBound = (upperBound - lowerBound) / 2 + lowerBound
+            let middleElement = self[middleBound]
+            let middleElementComparator = transform(middleElement)
             
-            if midElementComparator < elementComparator {
-                min = mid + 1
-            } else if midElementComparator > elementComparator {
-                max = mid
+            if middleElementComparator < elementComparator {
+                lowerBound = middleBound + 1
+            } else if middleElementComparator > elementComparator {
+                upperBound = middleBound
             } else {
                 switch selection {
-                    case .least: max = mid
-                    case .greatest:  min = mid + 1
-                    case .any:   return mid
+                    case .least:    upperBound = middleBound
+                    case .greatest: lowerBound = middleBound + 1
+                    case .any:      return middleBound
                 }
             }
         }
-        assert(min == max)
-        return min
+        assert(lowerBound == upperBound)
+        return lowerBound
     }
     
     public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
@@ -456,26 +456,26 @@ extension LazyMapSortedArraySlice {
     
     public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
-        var (min, max) = (range.lowerBound, range.upperBound)
-        while min < max {
-            let mid = (max - min) / 2 + min
-            let midElement = self[mid]
-            let midElementComparator = transform(midElement)
+        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+        while lowerBound < upperBound {
+            let middleBound = (upperBound - lowerBound) / 2 + lowerBound
+            let middleElement = self[middleBound]
+            let middleElementComparator = transform(middleElement)
             
-            if midElementComparator < elementComparator {
-                min = mid + 1
-            } else if midElementComparator > elementComparator {
-                max = mid
+            if middleElementComparator < elementComparator {
+                lowerBound = middleBound + 1
+            } else if middleElementComparator > elementComparator {
+                upperBound = middleBound
             } else {
                 switch selection {
-                    case .least: max = mid
-                    case .greatest:  min = mid + 1
-                    case .any:   return mid
+                    case .least:    upperBound = middleBound
+                    case .greatest: lowerBound = middleBound + 1
+                    case .any:      return middleBound
                 }
             }
         }
-        assert(min == max)
-        return min
+        assert(lowerBound == upperBound)
+        return lowerBound
     }
     
     public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {

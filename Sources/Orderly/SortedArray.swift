@@ -129,25 +129,25 @@ extension SortedArray {
     
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
-        var (min, max) = (range.lowerBound, range.upperBound)
-        while min < max {
-            let mid = (max - min) / 2 + min
-            let midElement = self[mid]
+        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+        while lowerBound < upperBound {
+            let middleBound = (upperBound - lowerBound) / 2 + lowerBound
+            let middleElement = self[middleBound]
             
-            if midElement < element {
-                min = mid + 1
-            } else if midElement > element {
-                max = mid
+            if middleElement < element {
+                lowerBound = middleBound + 1
+            } else if middleElement > element {
+                upperBound = middleBound
             } else {
                 switch selection {
-                    case .least: max = mid
-                    case .greatest:  min = mid + 1
-                    case .any:   return mid
+                    case .least:    upperBound = middleBound
+                    case .greatest: lowerBound = middleBound + 1
+                    case .any:      return middleBound
                 }
             }
         }
-        assert(min == max)
-        return min
+        assert(lowerBound == upperBound)
+        return lowerBound
     }
     
     /// The index at which an element would be inserted into the base.
@@ -453,25 +453,25 @@ extension SortedArraySlice {
     
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
                                in range: Range<Int>) -> Int {
-        var (min, max) = (range.lowerBound, range.upperBound)
-        while min < max {
-            let mid = (max - min) / 2 + min
-            let midElement = self[mid]
+        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+        while lowerBound < upperBound {
+            let middleBound = (upperBound - lowerBound) / 2 + lowerBound
+            let middleElement = self[middleBound]
             
-            if midElement < element {
-                min = mid + 1
-            } else if midElement > element {
-                max = mid
+            if middleElement < element {
+                lowerBound = middleBound + 1
+            } else if middleElement > element {
+                upperBound = middleBound
             } else {
                 switch selection {
-                    case .least: max = mid
-                    case .greatest:  min = mid + 1
-                    case .any:   return mid
+                    case .least:    upperBound = middleBound
+                    case .greatest: lowerBound = middleBound + 1
+                    case .any:      return middleBound
                 }
             }
         }
-        assert(min == max)
-        return min
+        assert(lowerBound == upperBound)
+        return lowerBound
     }
     
     /// The index at which an element would be inserted into the base.
