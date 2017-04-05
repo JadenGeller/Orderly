@@ -124,7 +124,6 @@ extension DescriptorSortedArray: CustomStringConvertible, CustomDebugStringConve
 }
 
 extension DescriptorSortedArray {
-    
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
@@ -403,7 +402,6 @@ extension DescriptorSortedArraySlice: CustomStringConvertible, CustomDebugString
 }
 
 extension DescriptorSortedArraySlice {
-    
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {

@@ -126,7 +126,6 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 }
 
 extension SortedArray {
-    
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
@@ -444,7 +443,6 @@ extension SortedArraySlice: CustomStringConvertible, CustomDebugStringConvertibl
 }
 
 extension SortedArraySlice {
-    
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {

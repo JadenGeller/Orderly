@@ -338,8 +338,8 @@ extension ${full_name} {
         return insertionIndex(ofComparator: transform(element), for: selection)
     }
     %end
-    
     % if type is LAZY_MAP:
+    
     public func insertionIndex(ofComparator ${type.comparator('element')}: Comparator, for selection: BoundSelection = .any) -> Int {
     % else:
     public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
