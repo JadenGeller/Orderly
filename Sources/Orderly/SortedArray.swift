@@ -127,9 +127,8 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 
 extension SortedArray {
     
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
             let middleElement = self[middleBound]
@@ -150,11 +149,6 @@ extension SortedArray {
         return lowerBound
     }
     
-    /// The index at which an element would be inserted into the base.
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(of: element, for: selection, in: Range(base.indices))
-    }
-    
     @discardableResult 
     public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
@@ -173,7 +167,7 @@ extension SortedArray {
     public mutating func insert(contentsOf sortedArray: SortedArray, at selection: BoundSelection = .any) {
         var index = startIndex
         for element in sortedArray {
-            index = insertionIndex(of: element, for: selection, in: index..<endIndex)
+            index = self[index..<endIndex].insertionIndex(of: element, for: selection)
             base.insert(element, at: index)
         }
     }
@@ -310,11 +304,11 @@ extension SortedArray {
         // Find most efficient position to insert at
         let oldElement = base[index]
         if oldElement < element {
-            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<base.endIndex)
+            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
             base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
             base[newIndex - 1] = element
         } else if oldElement > element {
-            let newIndex = insertionIndex(of: element, for: .greatest, in: base.startIndex..<(index + 1))
+            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
             base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
             base[newIndex] = element
         } else {
@@ -451,9 +445,8 @@ extension SortedArraySlice: CustomStringConvertible, CustomDebugStringConvertibl
 
 extension SortedArraySlice {
     
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
             let middleElement = self[middleBound]
@@ -474,11 +467,6 @@ extension SortedArraySlice {
         return lowerBound
     }
     
-    /// The index at which an element would be inserted into the base.
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(of: element, for: selection, in: Range(base.indices))
-    }
-    
     @discardableResult 
     public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
@@ -497,7 +485,7 @@ extension SortedArraySlice {
     public mutating func insert(contentsOf sortedArray: SortedArraySlice, at selection: BoundSelection = .any) {
         var index = startIndex
         for element in sortedArray {
-            index = insertionIndex(of: element, for: selection, in: index..<endIndex)
+            index = self[index..<endIndex].insertionIndex(of: element, for: selection)
             base.insert(element, at: index)
         }
     }
@@ -634,11 +622,11 @@ extension SortedArraySlice {
         // Find most efficient position to insert at
         let oldElement = base[index]
         if oldElement < element {
-            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<base.endIndex)
+            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
             base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
             base[newIndex - 1] = element
         } else if oldElement > element {
-            let newIndex = insertionIndex(of: element, for: .greatest, in: base.startIndex..<(index + 1))
+            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
             base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
             base[newIndex] = element
         } else {

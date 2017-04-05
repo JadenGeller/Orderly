@@ -141,14 +141,12 @@ extension LazyMapSortedArray: CustomStringConvertible, CustomDebugStringConverti
 }
 
 extension LazyMapSortedArray {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        return insertionIndex(ofComparator: transform(element), for: selection, in: range)
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        return insertionIndex(ofComparator: transform(element), for: selection)
     }
     
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
+        var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
             let middleElement = self[middleBound]
@@ -168,15 +166,6 @@ extension LazyMapSortedArray {
         }
         assert(lowerBound == upperBound)
         return lowerBound
-    }
-    
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(ofComparator: elementComparator, for: selection, in: Range(base.indices))
-    }
-    
-    /// The index at which an element would be inserted into the base.
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(of: element, for: selection, in: Range(base.indices))
     }
     
     @discardableResult 
@@ -304,11 +293,11 @@ extension LazyMapSortedArray {
         let elementComparator = transform(element)
         let oldElementComparator = transform(oldElement)
         if oldElementComparator < elementComparator {
-            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<base.endIndex)
+            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
             base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
             base[newIndex - 1] = element
         } else if oldElementComparator > elementComparator {
-            let newIndex = insertionIndex(of: element, for: .greatest, in: base.startIndex..<(index + 1))
+            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
             base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
             base[newIndex] = element
         } else {
@@ -449,14 +438,12 @@ extension LazyMapSortedArraySlice: CustomStringConvertible, CustomDebugStringCon
 }
 
 extension LazyMapSortedArraySlice {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        return insertionIndex(ofComparator: transform(element), for: selection, in: range)
+    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+        return insertionIndex(ofComparator: transform(element), for: selection)
     }
     
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any,
-                               in range: Range<Int>) -> Int {
-        var (lowerBound, upperBound) = (range.lowerBound, range.upperBound)
+    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
+        var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
             let middleElement = self[middleBound]
@@ -476,15 +463,6 @@ extension LazyMapSortedArraySlice {
         }
         assert(lowerBound == upperBound)
         return lowerBound
-    }
-    
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(ofComparator: elementComparator, for: selection, in: Range(base.indices))
-    }
-    
-    /// The index at which an element would be inserted into the base.
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
-        return insertionIndex(of: element, for: selection, in: Range(base.indices))
     }
     
     @discardableResult 
@@ -612,11 +590,11 @@ extension LazyMapSortedArraySlice {
         let elementComparator = transform(element)
         let oldElementComparator = transform(oldElement)
         if oldElementComparator < elementComparator {
-            let newIndex = insertionIndex(of: element, for: .least, in: (index + 1)..<base.endIndex)
+            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
             base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
             base[newIndex - 1] = element
         } else if oldElementComparator > elementComparator {
-            let newIndex = insertionIndex(of: element, for: .greatest, in: base.startIndex..<(index + 1))
+            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
             base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
             base[newIndex] = element
         } else {
