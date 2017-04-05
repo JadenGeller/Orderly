@@ -131,9 +131,11 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     }
     %end
 }
-% for is_slice in [False]:
+% for is_slice in [False, True]:
 %   suffix = 'Slice' if is_slice else ''
 %   full_name = type.name + suffix
+%   unsorted_array_type = 'ArraySlice<Element>' if is_slice else '[Element]'
+%   slicify = (lambda x: '{0}[{0}.indices]'.format(x)) if is_slice else (lambda x: x)
 
 public struct ${full_name}${generics_str(type.generics)} {
 % if not is_slice:
@@ -147,12 +149,11 @@ public struct ${full_name}${generics_str(type.generics)} {
     fileprivate var transform: (Element) -> Comparator
 %end
 }
-% if not is_slice:
 
 extension ${full_name} {
     /// Constructs a `${full_name}` assuing that `base` is already sorted,
     /// only performing check during testing.
-    public init(uncheckedSorted base: [Element]${arg_str(init_arg(), append=True)}) {
+    public init(uncheckedSorted base: ${unsorted_array_type}${arg_str(init_arg(), append=True)}) {
         assert(base.isSorted(${arg_str(init_arg(), call=True)}))
         self.base = base
         % if type is DESCRIPTOR:
@@ -163,7 +164,7 @@ extension ${full_name} {
     }
     
     /// Constructs a `${full_name}` if `base` is verified to be sorted, otherwise returns `nil`.
-    public init?(checkingSorted base: [Element]${arg_str(init_arg(), append=True)}) {
+    public init?(checkingSorted base: ${unsorted_array_type}${arg_str(init_arg(), append=True)}) {
         guard base.isSorted(${arg_str(init_arg(), call=True)}) else { return nil }
         self.base = base
         % if type is DESCRIPTOR:
@@ -174,8 +175,13 @@ extension ${full_name} {
     }
     
     // Constructs a `${full_name}` by sorting `base`.
-    public init(sorting base: [Element]${arg_str(init_arg(), append=True)}) {
+    public init(sorting base: ${unsorted_array_type}${arg_str(init_arg(), append=True)}) {
+        % if not is_slice:
         self.base = base.sorted(${arg_str(init_arg(), call=True)})
+        % else:
+        let sorted = base.sorted(${arg_str(init_arg(), call=True)})
+        self.base = sorted[sorted.indices]
+        %end
         % if type is DESCRIPTOR:
         self.areIncreasingInOrdering = areIncreasingInOrdering
         % elif type is LAZY_MAP: 
@@ -192,13 +198,16 @@ extension ${full_name} {
         %end
     }
 }
-%end
-% if type is NORMAL and not is_slice: 
+% if type is NORMAL: 
 
 extension ${full_name}: ExpressibleByArrayLiteral {
     public init(arrayLiteral elements: Element...) {
         guard elements.isSorted() else { fatalError("`SortedArray` literal must already be sorted.") }
+        % if not is_slice:
         self.base = elements
+        % else:
+        self.base = elements[elements.indices]
+        %end
     }
 }
 %end
@@ -243,13 +252,7 @@ extension ${full_name}: BidirectionalCollection {
         return base.endIndex
     }
     
-    public subscript(index: Int) -> Element {
-        return base[index]
-    }
-}
-
-extension ${full_name} {
-    public subscript(checked index: Int) -> Element {
+    public subscript(_ index: Int) -> Element {
         get {
             return self[index]
         }
@@ -278,20 +281,6 @@ extension ${full_name} {
                 }
             }
             base[index] = newValue
-        }
-    }
-    
-    public subscript(unsafeUnchecked index: Int) -> Element {
-        get {
-            return self[index]
-        }
-        set {
-            #if DEBUG
-                // Check during debug mode
-                self[index] = newValue
-            #else
-                base[index] = newValue
-            #endif
         }
     }
 }
@@ -496,17 +485,17 @@ extension ${full_name} {
 extension ${full_name} {
     public func sorted() -> [Element] {
         % if not is_slice:
-            return base
+        return base
         % else:
-            return Array(base)
+        return Array(base)
         %end
     }
 
     public func sorted() -> SortedArray<Element> {
         % if not is_slice:
-            return self
+        return self
         % else:
-            return SortedArray(uncheckedSorted: Array(base))
+        return SortedArray(uncheckedSorted: Array(base))
         %end
     }
 
