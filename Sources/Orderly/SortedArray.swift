@@ -74,7 +74,7 @@ extension SortedArray: BidirectionalCollection {
     
     public subscript(_ index: Int) -> Element {
         get {
-            return self[index]
+            return base[index]
         }
         set {
             if index - 1 >= base.startIndex {
@@ -392,7 +392,7 @@ extension SortedArraySlice: BidirectionalCollection {
     
     public subscript(_ index: Int) -> Element {
         get {
-            return self[index]
+            return base[index]
         }
         set {
             if index - 1 >= base.startIndex {

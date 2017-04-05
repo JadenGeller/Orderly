@@ -82,7 +82,7 @@ extension LazyMapSortedArray: BidirectionalCollection {
     
     public subscript(_ index: Int) -> Element {
         get {
-            return self[index]
+            return base[index]
         }
         set {
             let newValueComparator = transform(newValue)
@@ -379,7 +379,7 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
     
     public subscript(_ index: Int) -> Element {
         get {
-            return self[index]
+            return base[index]
         }
         set {
             let newValueComparator = transform(newValue)

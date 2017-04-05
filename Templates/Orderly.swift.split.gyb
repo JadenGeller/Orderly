@@ -254,7 +254,7 @@ extension ${full_name}: BidirectionalCollection {
     
     public subscript(_ index: Int) -> Element {
         get {
-            return self[index]
+            return base[index]
         }
         set {
             % if type is LAZY_MAP: 
