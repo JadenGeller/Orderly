@@ -20,7 +20,7 @@ class SortedArrayTests: XCTestCase {
     }
     
     func testInsertionIndex() {
-        let arr = SortedArray(fromUnsorted: [1, 2, 5, 6, 6, 10, 12])
+        let arr = SortedArray(sorting: [1, 2, 5, 6, 6, 10, 12])
         XCTAssertEqual(0, arr.insertionIndex(of: -100))
         XCTAssertEqual(0, arr.insertionIndex(of: 0))
         XCTAssertEqual(0, arr.insertionIndex(of: 1))
@@ -29,14 +29,14 @@ class SortedArrayTests: XCTestCase {
         XCTAssertEqual(2, arr.insertionIndex(of: 4))
         XCTAssertEqual(2, arr.insertionIndex(of: 5))
         XCTAssertEqual(3, arr.insertionIndex(of: 6))
-        XCTAssertEqual(3, arr.insertionIndex(of: 6, for: .first))
-        XCTAssertEqual(3, arr.insertionIndex(of: 6, for: .first))
-        XCTAssertEqual(5, arr.insertionIndex(of: 6, for: .last))
+        XCTAssertEqual(3, arr.insertionIndex(of: 6, for: .least))
+        XCTAssertEqual(3, arr.insertionIndex(of: 6, for: .least))
+        XCTAssertEqual(5, arr.insertionIndex(of: 6, for: .greatest))
         XCTAssertEqual(7, arr.insertionIndex(of: 100))
     }
     
     func testInsert() {
-        var arr = SortedArray(fromUnsorted: [1, 2, 5, 6, 6, 10, 12])
+        var arr = SortedArray(sorting: [1, 2, 5, 6, 6, 10, 12])
         arr.insert(3)
         arr.insert(6)
         arr.insert(0)
@@ -46,8 +46,8 @@ class SortedArrayTests: XCTestCase {
     }
     
     func testInsertSortedArray() {
-        let arr = SortedArray(fromUnsorted: [1, 2, 3, 5, 10, 12, 13])
-        let sortedBar = SortedArray(fromUnsorted: [2, 3, 4, 6, 7, 8, 16])
+        let arr = SortedArray(sorting: [1, 2, 3, 5, 10, 12, 13])
+        let sortedBar = SortedArray(sorting: [2, 3, 4, 6, 7, 8, 16])
         let unsortedBar: Array = [2, 3, 4, 6, 7, 8, 16]
         
         var arrNormal = arr
