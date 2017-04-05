@@ -283,6 +283,43 @@ extension ${full_name}: BidirectionalCollection {
             base[index] = newValue
         }
     }
+    
+    public subscript(_ range: Range<Int>) -> ${type.name}Slice${generics_str(type.stripped_generics)} {
+        get {
+            % if type is DESCRIPTOR:
+                return ${type.name}Slice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
+            % elif type is LAZY_MAP: 
+                return ${type.name}Slice(base: base[range], transform: transform)
+            % else:
+                return ${type.name}Slice(base: base[range])
+            %end
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                % if type is LAZY_MAP: 
+                let ${type.comparator('precedingValue')} = transform(precedingValue)
+                let ${type.comparator('firstNewValue')} = transform(firstNewValue)
+                %end
+                guard ${type.compare(type.comparator('precedingValue'), '<=', 
+                                     type.comparator('firstNewValue'))} else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                % if type is LAZY_MAP: 
+                let ${type.comparator('followingValue')} = transform(followingValue)
+                let ${type.comparator('lastNewValue')} = transform(lastNewValue)
+                %end
+                guard ${type.compare(type.comparator('lastNewValue'), '<=', 
+                                     type.comparator('followingValue'))} else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
+        }
+    }
 }
 
 extension ${full_name}: CustomStringConvertible, CustomDebugStringConvertible {

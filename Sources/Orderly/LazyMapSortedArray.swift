@@ -103,6 +103,31 @@ extension LazyMapSortedArray: BidirectionalCollection {
             base[index] = newValue
         }
     }
+    
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+        get {
+                return LazyMapSortedArraySlice(base: base[range], transform: transform)
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                let precedingValueComparator = transform(precedingValue)
+                let firstNewValueComparator = transform(firstNewValue)
+                guard precedingValueComparator <= firstNewValueComparator else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                let followingValueComparator = transform(followingValue)
+                let lastNewValueComparator = transform(lastNewValue)
+                guard lastNewValueComparator <= followingValueComparator else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
+        }
+    }
 }
 
 extension LazyMapSortedArray: CustomStringConvertible, CustomDebugStringConvertible {
@@ -384,6 +409,31 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
                 }
             }
             base[index] = newValue
+        }
+    }
+    
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+        get {
+                return LazyMapSortedArraySlice(base: base[range], transform: transform)
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                let precedingValueComparator = transform(precedingValue)
+                let firstNewValueComparator = transform(firstNewValue)
+                guard precedingValueComparator <= firstNewValueComparator else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                let followingValueComparator = transform(followingValue)
+                let lastNewValueComparator = transform(lastNewValue)
+                guard lastNewValueComparator <= followingValueComparator else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
         }
     }
 }

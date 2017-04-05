@@ -92,6 +92,27 @@ extension SortedArray: BidirectionalCollection {
             base[index] = newValue
         }
     }
+    
+    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
+        get {
+                return SortedArraySlice(base: base[range])
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                guard precedingValue <= firstNewValue else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                guard lastNewValue <= followingValue else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
+        }
+    }
 }
 
 extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
@@ -393,6 +414,27 @@ extension SortedArraySlice: BidirectionalCollection {
                 }
             }
             base[index] = newValue
+        }
+    }
+    
+    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
+        get {
+                return SortedArraySlice(base: base[range])
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                guard precedingValue <= firstNewValue else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                guard lastNewValue <= followingValue else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
         }
     }
 }

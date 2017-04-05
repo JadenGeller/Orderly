@@ -90,6 +90,27 @@ extension DescriptorSortedArray: BidirectionalCollection {
             base[index] = newValue
         }
     }
+    
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+        get {
+                return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                guard !areIncreasingInOrdering(firstNewValue, precedingValue) else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                guard !areIncreasingInOrdering(followingValue, lastNewValue) else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
+        }
+    }
 }
 
 extension DescriptorSortedArray: CustomStringConvertible, CustomDebugStringConvertible {
@@ -352,6 +373,27 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
                 }
             }
             base[index] = newValue
+        }
+    }
+    
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+        get {
+                return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
+        }
+        set {
+            if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
+                let precedingValue = base[range.lowerBound - 1]
+                guard !areIncreasingInOrdering(firstNewValue, precedingValue) else {
+                    preconditionFailure("Cannot assign \(firstNewValue) in position after \(precedingValue).") 
+                }
+            }
+            if range.upperBound < base.endIndex, let lastNewValue = newValue.last {
+                let followingValue = base[range.upperBound]
+                guard !areIncreasingInOrdering(followingValue, lastNewValue) else {
+                    preconditionFailure("Cannot assign \(lastNewValue) in position before \(followingValue).") 
+                }
+            }
+            base[range] = newValue.base
         }
     }
 }
