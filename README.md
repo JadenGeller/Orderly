@@ -15,3 +15,7 @@ In addition to `SortedArray`, Orderly also provides a `LazyMapSortedArray` type 
 let x: LazyMapSortedArray = arr.sorted(on: { $0.foo })
 let y: DescriptorSortedArray = arr.sortedy(by: { $0.foo < $1.foo || $0.bar < $0.bar })
 ```
+
+## GYB
+
+This package is implemented using Generate Your Boilerplate to codegen the 3 array types. If you'd like to contribute to this package, please modify the gyb file in the Templates directory and then run the compile script from that directory.
