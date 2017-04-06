@@ -96,11 +96,17 @@ extension DescriptorSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: CountableRange<Int>) -> DescriptorSortedArraySlice<Element> {
         get {
                 return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 guard !areIncreasingInOrdering(firstNewValue, precedingValue) else {
@@ -376,11 +382,17 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: CountableRange<Int>) -> DescriptorSortedArraySlice<Element> {
         get {
                 return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 guard !areIncreasingInOrdering(firstNewValue, precedingValue) else {

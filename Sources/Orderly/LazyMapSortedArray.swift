@@ -108,11 +108,17 @@ extension LazyMapSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: CountableRange<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
         get {
                 return LazyMapSortedArraySlice(base: base[range], transform: transform)
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 let precedingValueComparator = transform(precedingValue)
@@ -409,11 +415,17 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: CountableRange<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
         get {
                 return LazyMapSortedArraySlice(base: base[range], transform: transform)
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 let precedingValueComparator = transform(precedingValue)

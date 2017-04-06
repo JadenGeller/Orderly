@@ -294,7 +294,7 @@ extension ${full_name}: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> ${type.name}Slice${generics_str(type.stripped_generics())} {
+    public subscript(_ range: CountableRange<Int>) -> ${type.name}Slice${generics_str(type.stripped_generics())} {
         get {
             % if type is DESCRIPTOR:
                 return ${type.name}Slice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
@@ -305,6 +305,12 @@ extension ${full_name}: BidirectionalCollection {
             %end
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 % if type is LAZY_MAP: 

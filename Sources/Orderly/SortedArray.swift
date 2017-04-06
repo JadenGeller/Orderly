@@ -98,11 +98,17 @@ extension SortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
+    public subscript(_ range: CountableRange<Int>) -> SortedArraySlice<Element> {
         get {
                 return SortedArraySlice(base: base[range])
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 guard precedingValue <= firstNewValue else {
@@ -417,11 +423,17 @@ extension SortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
+    public subscript(_ range: CountableRange<Int>) -> SortedArraySlice<Element> {
         get {
                 return SortedArraySlice(base: base[range])
         }
         set {
+            // Fast path for empty assignment
+            guard !newValue.isEmpty else {
+                base.removeSubrange(range)
+                return
+            }
+            
             if range.lowerBound - 1 >= base.startIndex, let firstNewValue = newValue.first {
                 let precedingValue = base[range.lowerBound - 1]
                 guard precedingValue <= firstNewValue else {
