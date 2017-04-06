@@ -508,19 +508,19 @@ extension ${full_name} {
     }
     
     public mutating func removeSubrange(_ bounds: Range<Int>) {
-        base.removeSubrange(subRange)
+        base.removeSubrange(bounds)
     }
     
     public mutating func removeSubrange(_ bounds: ClosedRange<Int>) {
-        base.removeSubrange(subRange)
+        base.removeSubrange(bounds)
     }
     
     public mutating func removeSubrange(_ bounds: CountableRange<Int>) {
-        base.removeSubrange(subRange)
+        base.removeSubrange(bounds)
     }
     
     public mutating func removeSubrange(_ bounds: CountableClosedRange<Int>) {
-        base.removeSubrange(subRange)
+        base.removeSubrange(bounds)
     }
     
     public mutating func reserveCapacity(minimumCapacity: Int) {

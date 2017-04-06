@@ -247,20 +247,20 @@ extension DescriptorSortedArray {
         base.removeLast()
     }
     
-    public mutating func removeSubrange(subRange: Range<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: Range<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: ClosedRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: ClosedRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: CountableRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: CountableRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: CountableClosedRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: CountableClosedRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
     public mutating func reserveCapacity(minimumCapacity: Int) {
@@ -534,20 +534,20 @@ extension DescriptorSortedArraySlice {
         base.removeLast()
     }
     
-    public mutating func removeSubrange(subRange: Range<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: Range<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: ClosedRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: ClosedRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: CountableRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: CountableRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
-    public mutating func removeSubrange(subRange: CountableClosedRange<Int>) {
-        base.removeSubrange(subRange)
+    public mutating func removeSubrange(_ bounds: CountableClosedRange<Int>) {
+        base.removeSubrange(bounds)
     }
     
     public mutating func reserveCapacity(minimumCapacity: Int) {
