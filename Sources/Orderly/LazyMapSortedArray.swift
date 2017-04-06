@@ -9,6 +9,7 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     
     // FIXME: Use `withoutActuallyEscaping` in Swift 3.1
     public func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> [Iterator.Element] {
+        // FIXME: Remove type annotation after SR-4509 is fixed.
         return (lazy.map({ (value: $0, comparator: transform($0)) }) as LazyMapSequence)
                     .sorted(by: { (a, b) in a.comparator < b.comparator })
                     .map({ $0.value })
