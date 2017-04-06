@@ -258,6 +258,7 @@ extension LazyMapSortedArray {
         base.removeAll(keepingCapacity: keepingCapacity)
     }
     
+    @discardableResult
     public mutating func remove(at index: Int) -> Element {
         return base.remove(at: index)
     }
@@ -565,6 +566,7 @@ extension LazyMapSortedArraySlice {
         base.removeAll(keepingCapacity: keepingCapacity)
     }
     
+    @discardableResult
     public mutating func remove(at index: Int) -> Element {
         return base.remove(at: index)
     }

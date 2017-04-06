@@ -240,6 +240,7 @@ extension SortedArray {
         base.removeAll(keepingCapacity: keepingCapacity)
     }
     
+    @discardableResult
     public mutating func remove(at index: Int) -> Element {
         return base.remove(at: index)
     }
@@ -565,6 +566,7 @@ extension SortedArraySlice {
         base.removeAll(keepingCapacity: keepingCapacity)
     }
     
+    @discardableResult
     public mutating func remove(at index: Int) -> Element {
         return base.remove(at: index)
     }
