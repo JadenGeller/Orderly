@@ -9,11 +9,9 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     
     // FIXME: Use `withoutActuallyEscaping` in Swift 3.1
     public func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> [Iterator.Element] {
-        return /*withoutActuallyEscaping(transform) { transform in*/
-            lazy.map({ (value: $0, comparator: transform($0)) })
-            .sorted(by: { (a, b) in a.comparator < b.comparator })
-            .map({ $0.value })
-        /*}*/
+        return (lazy.map({ (value: $0, comparator: transform($0)) }) as LazyMapSequence)
+                    .sorted(by: { (a, b) in a.comparator < b.comparator })
+                    .map({ $0.value })
     }
 }
 
@@ -50,6 +48,11 @@ extension LazyMapSortedArray {
     }
 }
 
+extension Sequence {
+    func sorted<Comparator>(on transform: @escaping (Iterator.Element) -> Comparator) -> LazyMapSortedArray<Iterator.Element, Comparator> {
+        return LazyMapSortedArray(sorting: Array(self), on: transform)
+    }
+}
 
 extension LazyMapSortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
@@ -346,7 +349,6 @@ extension LazyMapSortedArraySlice {
         self.transform = transform
     }
 }
-
 
 extension LazyMapSortedArraySlice: BidirectionalCollection {
     public var indices: CountableRange<Int> {

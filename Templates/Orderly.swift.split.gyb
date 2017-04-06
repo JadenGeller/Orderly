@@ -19,17 +19,15 @@
         def name(self):
             return self.prefix + 'SortedArray'
             
-        @property
-        def generics(self):
+        def generics(self, element_name='Element'):
             return {
-                NORMAL:     OrderedDict([('Element', 'Comparable')]),
-                DESCRIPTOR: OrderedDict([('Element', None)]),
-                LAZY_MAP:   OrderedDict([('Element', None), ('Comparator', 'Comparable')])
+                NORMAL:     OrderedDict([(element_name, 'Comparable')]),
+                DESCRIPTOR: OrderedDict([(element_name, None)]),
+                LAZY_MAP:   OrderedDict([(element_name, None), ('Comparator', 'Comparable')])
             }[self]
             
-        @property
-        def stripped_generics(self):
-            return OrderedDict([(arg, None) for arg in self.generics])
+        def stripped_generics(self, element_name='Element'):
+            return OrderedDict([(arg, None) for arg in self.generics(element_name=element_name)])
                                                         
         def comparator(self, name):
             if self is LAZY_MAP: 
@@ -89,16 +87,16 @@ public enum BoundSelection {
         }[type]
         
     def arg_str(arg, append=False, call=False):
-        assert not append or not call
         if arg is None:
             return ''
         else:
-            if append:
-                return ', {} {}: {}'.format(arg.label, arg.name, arg.type)
-            elif call:
-                return '{}: {}'.format(arg.label, arg.name)
+            if call:
+                result = '{}: {}'.format(arg.label, arg.name)
             else:
-                return '{} {}: {}'.format(arg.label, arg.name, arg.type)
+                result = '{} {}: {}'.format(arg.label, arg.name, arg.type)
+            if append:
+                result = ', {}'.format(result)
+            return result
 }%
 % for type in SortedArrayType:
 // FILE: ${type.name}.swift
@@ -123,11 +121,9 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     
     // FIXME: Use `withoutActuallyEscaping` in Swift 3.1
     public func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> [Iterator.Element] {
-        return /*withoutActuallyEscaping(transform) { transform in*/
-            lazy.map({ (value: $0, comparator: transform($0)) })
-            .sorted(by: { (a, b) in a.comparator < b.comparator })
-            .map({ $0.value })
-        /*}*/
+        return (lazy.map({ (value: $0, comparator: transform($0)) }) as LazyMapSequence)
+                    .sorted(by: { (a, b) in a.comparator < b.comparator })
+                    .map({ $0.value })
     }
     %end
 }
@@ -137,7 +133,7 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
 %   unsorted_array_type = 'ArraySlice<Element>' if is_slice else '[Element]'
 %   slicify = (lambda x: '{0}[{0}.indices]'.format(x)) if is_slice else (lambda x: x)
 
-public struct ${full_name}${generics_str(type.generics)} {
+public struct ${full_name}${generics_str(type.generics())} {
 % if not is_slice:
     fileprivate var base: [Element]
 % else:
@@ -211,18 +207,31 @@ extension ${full_name}: ExpressibleByArrayLiteral {
     }
 }
 %end
+%{
+    sorted_func_generics = type.stripped_generics().copy()
+    if 'Element' in sorted_func_generics:
+        del sorted_func_generics['Element']
+}%
+% if not is_slice:
+
+extension Sequence${
+    ' where Iterator.Element: Comparable' if type is NORMAL else ''} {
+    func sorted${generics_str(sorted_func_generics)}(${arg_str(init_arg(element_name='Iterator.Element'))}) -> ${full_name}${generics_str(type.stripped_generics(element_name='Iterator.Element'))} {
+        return ${full_name}(sorting: Array(self)${arg_str(init_arg(), call=True, append=True)})
+    }
+}
+%end
 
 %{        
-    if type.generics['Element'] is None:
+    if type.generics()['Element'] is None:
         arr_ext_constraint = ''
     else:
         arr_ext_constraint = ' where Element: {}'\
-            .format(type.generics['Element'])
+            .format(type.generics()['Element'])
            
-    arr_init_generics = type.generics.copy()
+    arr_init_generics = type.generics().copy()
     arr_init_generics.pop('Element', None)
 }%
-
 extension ${full_name}: BidirectionalCollection {
     public var indices: CountableRange<Int> {
         return base.indices
@@ -284,7 +293,7 @@ extension ${full_name}: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> ${type.name}Slice${generics_str(type.stripped_generics)} {
+    public subscript(_ range: Range<Int>) -> ${type.name}Slice${generics_str(type.stripped_generics())} {
         get {
             % if type is DESCRIPTOR:
                 return ${type.name}Slice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
@@ -573,13 +582,13 @@ extension ${full_name} {
 }
 
 %{
-    eq_func_generics = type.generics.copy()
+    eq_func_generics = type.generics().copy()
     if 'Element' in eq_func_generics:
         eq_func_generics['Element'] = 'Comparable'
 }%
 public func ==${generics_str(eq_func_generics)}(
-    lhs: ${full_name}${generics_str(type.stripped_generics)},
-    rhs: ${full_name}${generics_str(type.stripped_generics)}
+    lhs: ${full_name}${generics_str(type.stripped_generics())},
+    rhs: ${full_name}${generics_str(type.stripped_generics())}
 ) -> Bool {
     return lhs.base == rhs.base
 }

@@ -42,6 +42,11 @@ extension SortedArray: ExpressibleByArrayLiteral {
     }
 }
 
+extension Sequence where Iterator.Element: Comparable {
+    func sorted() -> SortedArray<Iterator.Element> {
+        return SortedArray(sorting: Array(self))
+    }
+}
 
 extension SortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
@@ -358,7 +363,6 @@ extension SortedArraySlice: ExpressibleByArrayLiteral {
         self.base = elements[elements.indices]
     }
 }
-
 
 extension SortedArraySlice: BidirectionalCollection {
     public var indices: CountableRange<Int> {

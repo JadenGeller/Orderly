@@ -40,6 +40,11 @@ extension DescriptorSortedArray {
     }
 }
 
+extension Sequence {
+    func sorted(by areIncreasingInOrdering: @escaping (Iterator.Element, Iterator.Element) -> Bool) -> DescriptorSortedArray<Iterator.Element> {
+        return DescriptorSortedArray(sorting: Array(self), by: areIncreasingInOrdering)
+    }
+}
 
 extension DescriptorSortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
@@ -317,7 +322,6 @@ extension DescriptorSortedArraySlice {
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
 }
-
 
 extension DescriptorSortedArraySlice: BidirectionalCollection {
     public var indices: CountableRange<Int> {
