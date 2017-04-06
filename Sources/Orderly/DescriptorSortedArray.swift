@@ -96,7 +96,7 @@ extension DescriptorSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
         get {
                 return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
         }
@@ -382,7 +382,7 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
         get {
                 return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
         }

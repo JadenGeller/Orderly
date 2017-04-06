@@ -108,7 +108,7 @@ extension LazyMapSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
         get {
                 return LazyMapSortedArraySlice(base: base[range], transform: transform)
         }
@@ -415,7 +415,7 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
         get {
                 return LazyMapSortedArraySlice(base: base[range], transform: transform)
         }

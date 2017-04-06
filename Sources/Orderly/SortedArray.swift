@@ -98,7 +98,7 @@ extension SortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> SortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
         get {
                 return SortedArraySlice(base: base[range])
         }
@@ -423,7 +423,7 @@ extension SortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: CountableRange<Int>) -> SortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> SortedArraySlice<Element> {
         get {
                 return SortedArraySlice(base: base[range])
         }
