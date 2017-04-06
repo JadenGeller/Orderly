@@ -189,7 +189,7 @@ extension LazyMapSortedArray {
 }
 
 extension LazyMapSortedArray {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         let elementComparator = transform(element)
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
@@ -208,13 +208,18 @@ extension LazyMapSortedArray {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        let elementComparator = transform(element)
+        let lastValueComparator = transform(lastValue)
+        guard lastValueComparator <= elementComparator else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 
@@ -485,7 +490,7 @@ extension LazyMapSortedArraySlice {
 }
 
 extension LazyMapSortedArraySlice {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         let elementComparator = transform(element)
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
@@ -504,13 +509,18 @@ extension LazyMapSortedArraySlice {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        let elementComparator = transform(element)
+        let lastValueComparator = transform(lastValue)
+        guard lastValueComparator <= elementComparator else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 

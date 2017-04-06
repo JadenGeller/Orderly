@@ -168,7 +168,7 @@ extension DescriptorSortedArray {
 }
 
 extension DescriptorSortedArray {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard !areIncreasingInOrdering(element, precedingValue) else {
@@ -184,13 +184,16 @@ extension DescriptorSortedArray {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        guard !areIncreasingInOrdering(element, lastValue) else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 
@@ -445,7 +448,7 @@ extension DescriptorSortedArraySlice {
 }
 
 extension DescriptorSortedArraySlice {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard !areIncreasingInOrdering(element, precedingValue) else {
@@ -461,13 +464,16 @@ extension DescriptorSortedArraySlice {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        guard !areIncreasingInOrdering(element, lastValue) else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 

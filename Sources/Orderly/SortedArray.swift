@@ -178,7 +178,7 @@ extension SortedArray {
 }
 
 extension SortedArray {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard precedingValue <= element else {
@@ -194,13 +194,16 @@ extension SortedArray {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        guard lastValue <= element else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 
@@ -494,7 +497,7 @@ extension SortedArraySlice {
 }
 
 extension SortedArraySlice {
-    public mutating func insert(_ element: Element, atChecked index: Int) {
+    public mutating func insert(_ element: Element, at index: Int) {
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard precedingValue <= element else {
@@ -510,13 +513,16 @@ extension SortedArraySlice {
         base.insert(element, at: index)
     }
     
-    public mutating func insert(_ element: Element, atUnsafeUnchecked index: Int) {
-        #if DEBUG
-            // Check during debug mode
-            insert(element, atChecked: index)
-        #else
-            base.insert(element, at: index)
-        #endif
+    public mutating func append(_ element: Element) {
+        guard let lastValue = base.last else {
+            // Currently empty
+            base.append(element)
+            return
+        }
+        guard lastValue <= element else {
+            preconditionFailure("Cannot append \(element) after \(lastValue).") 
+        }
+        base.append(element)
     }
 }
 
