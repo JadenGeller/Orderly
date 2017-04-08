@@ -23,7 +23,7 @@ stripped_name, ext = os.path.splitext(name)
 assert ext == '.split', "Expected `.split` file"
 
 with open(name, 'r') as f:
-    parsed = re.compile(r'// *FILE: *([^ ]+) *\n').split(f.read())
+    parsed = re.compile(r'// *FILE: *([^ \n]+) *\n').split(f.read())
     
     main_name = stripped_name
     main_contents = parsed.pop(0)
