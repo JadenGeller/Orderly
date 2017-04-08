@@ -176,7 +176,7 @@ extension ${full_name} {
         % if not is_slice:
         self.base = base.sorted(${arg_str(init_arg(), call=True)})
         % else:
-        let sorted = base.sorted(${arg_str(init_arg(), call=True)})
+        let sorted: Array = base.sorted(${arg_str(init_arg(), call=True)})
         self.base = sorted[sorted.indices]
         %end
         % if type is DESCRIPTOR:

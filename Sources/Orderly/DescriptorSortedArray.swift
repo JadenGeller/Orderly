@@ -322,7 +322,7 @@ extension DescriptorSortedArraySlice {
     
     // Constructs a `DescriptorSortedArraySlice` by sorting `base`.
     public init(sorting base: ArraySlice<Element>, by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
-        let sorted = base.sorted(by: areIncreasingInOrdering)
+        let sorted: Array = base.sorted(by: areIncreasingInOrdering)
         self.base = sorted[sorted.indices]
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }

@@ -352,7 +352,7 @@ extension LazyMapSortedArraySlice {
     
     // Constructs a `LazyMapSortedArraySlice` by sorting `base`.
     public init(sorting base: ArraySlice<Element>, on transform: @escaping (Element) -> Comparator) {
-        let sorted = base.sorted(on: transform)
+        let sorted: Array = base.sorted(on: transform)
         self.base = sorted[sorted.indices]
         self.transform = transform
     }

@@ -358,7 +358,7 @@ extension SortedArraySlice {
     
     // Constructs a `SortedArraySlice` by sorting `base`.
     public init(sorting base: ArraySlice<Element>) {
-        let sorted = base.sorted()
+        let sorted: Array = base.sorted()
         self.base = sorted[sorted.indices]
     }
     
