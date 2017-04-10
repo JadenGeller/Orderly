@@ -1,7 +1,7 @@
 extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == Iterator.Element {
     public func isSorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> Bool {
-        let transformed = lazy.map(transform)
-        for (lhs, rhs) in zip(transformed, transformed.dropFirst()) {
+        let comparator = lazy.map(transform)
+        for (lhs, rhs) in zip(comparator, comparator.dropFirst()) {
             guard lhs <= rhs else { return false }
         }
         return true
@@ -9,7 +9,7 @@ extension Sequence where SubSequence: Sequence, SubSequence.Iterator.Element == 
     
     // FIXME: Use `withoutActuallyEscaping` in Swift 3.1
     public func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> [Iterator.Element] {
-        // FIXME: Remove type annotation after SR-4509 is fixed.
+        // FIXME: Remove type annotation after SR-4509 is resolved.
         return (lazy.map({ (value: $0, comparator: transform($0)) }) as LazyMapSequence)
                     .sorted(by: { (a, b) in a.comparator < b.comparator })
                     .map({ $0.value })
@@ -22,7 +22,14 @@ public struct LazyMapSortedArray<Element, Comparator: Comparable> {
 }
 
 extension LazyMapSortedArray {
-    /// Constructs a `LazyMapSortedArray` assuing that `base` is already sorted,
+    public struct Slice {
+        fileprivate var base: ArraySlice<Element>
+        fileprivate var transform: ((Element) -> Comparator)?
+    }
+}
+
+extension LazyMapSortedArray {
+    /// Constructs a `LazyMapSortedArray` assuring that `base` is already sorted,
     /// only performing check during testing.
     public init(uncheckedSorted base: [Element], on transform: @escaping (Element) -> Comparator) {
         assert(base.isSorted(on: transform))
@@ -50,10 +57,11 @@ extension LazyMapSortedArray {
 }
 
 extension Sequence {
-    func sorted<Comparator>(on transform: @escaping (Iterator.Element) -> Comparator) -> LazyMapSortedArray<Iterator.Element, Comparator> {
+    func sorted<Comparator: Comparable>(on transform: @escaping (Iterator.Element) -> Comparator) -> LazyMapSortedArray<Iterator.Element, Comparator> {
         return LazyMapSortedArray(sorting: Array(self), on: transform)
     }
 }
+
 
 extension LazyMapSortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
@@ -108,11 +116,12 @@ extension LazyMapSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArray<Element, Comparator>.Slice {
         get {
-                return LazyMapSortedArraySlice(base: base[range], transform: transform)
+            return LazyMapSortedArray.Slice(uncheckedSorted: base[range], on: transform)
         }
         set {
+            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -140,22 +149,32 @@ extension LazyMapSortedArray: BidirectionalCollection {
     }
 }
 
+//extension LazyMapSortedArray: RangeReplaceableCollection {
+//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+//        where C.Iterator.Element == Iterator.Element {
+//        
+//    }
+//}
+
 extension LazyMapSortedArray: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return base.description
     }
     
     public var debugDescription: String {
+        // FIXME: Incorrectly `ArraySlice` for `.Slice` variants.
         return base.debugDescription
     }
 }
 
 extension LazyMapSortedArray {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+    public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
+
         return insertionIndex(ofComparator: transform(element), for: selection)
     }
     
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
+    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: IndexPosition = .any) -> Int {
+    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -179,7 +198,7 @@ extension LazyMapSortedArray {
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+    public mutating func insert(_ element: Element, at selection: IndexPosition = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
         base.insert(element, at: index)
         return index
@@ -196,6 +215,7 @@ extension LazyMapSortedArray {
 
 extension LazyMapSortedArray {
     public mutating func insert(_ element: Element, at index: Int) {
+        
         let elementComparator = transform(element)
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
@@ -215,6 +235,7 @@ extension LazyMapSortedArray {
     }
     
     public mutating func append(_ element: Element) {
+        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -233,7 +254,8 @@ extension LazyMapSortedArray {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
-    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+    public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
+        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         let elementComparator = transform(element)
@@ -295,47 +317,31 @@ extension LazyMapSortedArray {
         base.reserveCapacity(minimumCapacity)
     }
 }
-
 extension LazyMapSortedArray {
-    /// Replaces element at index with a new element, resorting the base afterwards.
-    ///
-    /// Note this is more efficient than simply removing and adding since this function
-    /// will only shift the elements that actually need to move.
-    ///
-    /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {        
-        // Find most efficient position to insert at
-        let oldElement = base[index]
-        let elementComparator = transform(element)
-        let oldElementComparator = transform(oldElement)
-        if oldElementComparator < elementComparator {
-            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
-            base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
-            base[newIndex - 1] = element
-        } else if oldElementComparator > elementComparator {
-            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
-            base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
-            base[newIndex] = element
-        } else {
-            base[index] = element
-        }
+    /// Returns the maximum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
     }
 }
 
-public func ==<Element: Comparable, Comparator: Comparable>(
-    lhs: LazyMapSortedArray<Element, Comparator>,
-    rhs: LazyMapSortedArray<Element, Comparator>
-) -> Bool {
-    return lhs.base == rhs.base
-}
-
-public struct LazyMapSortedArraySlice<Element, Comparator: Comparable> {
-    fileprivate var base: ArraySlice<Element>
-    fileprivate var transform: (Element) -> Comparator
-}
-
-extension LazyMapSortedArraySlice {
-    /// Constructs a `LazyMapSortedArraySlice` assuing that `base` is already sorted,
+extension LazyMapSortedArray.Slice {
+//    public init() {
+//        self.init(uncheckedSorted: [])
+//    }
+    
+    fileprivate init(uncheckedSorted base: ArraySlice<Element>, on transform: ((Element) -> Comparator)? = nil) {
+        self.base = base
+        self.transform = transform
+    }
+    
+    /// Constructs a `LazyMapSortedArray` assuring that `base` is already sorted,
     /// only performing check during testing.
     public init(uncheckedSorted base: ArraySlice<Element>, on transform: @escaping (Element) -> Comparator) {
         assert(base.isSorted(on: transform))
@@ -343,17 +349,16 @@ extension LazyMapSortedArraySlice {
         self.transform = transform
     }
     
-    /// Constructs a `LazyMapSortedArraySlice` if `base` is verified to be sorted, otherwise returns `nil`.
+    /// Constructs a `LazyMapSortedArray` if `base` is verified to be sorted, otherwise returns `nil`.
     public init?(checkingSorted base: ArraySlice<Element>, on transform: @escaping (Element) -> Comparator) {
         guard base.isSorted(on: transform) else { return nil }
         self.base = base
         self.transform = transform
     }
     
-    // Constructs a `LazyMapSortedArraySlice` by sorting `base`.
+    // Constructs a `LazyMapSortedArray` by sorting `base`.
     public init(sorting base: ArraySlice<Element>, on transform: @escaping (Element) -> Comparator) {
-        let sorted: Array = base.sorted(on: transform)
-        self.base = sorted[sorted.indices]
+        self.base = ArraySlice(base.sorted(on: transform))
         self.transform = transform
     }
     
@@ -363,7 +368,8 @@ extension LazyMapSortedArraySlice {
     }
 }
 
-extension LazyMapSortedArraySlice: BidirectionalCollection {
+
+extension LazyMapSortedArray.Slice: BidirectionalCollection {
     public var indices: CountableRange<Int> {
         return base.indices
     }
@@ -397,6 +403,7 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
             return base[index]
         }
         set {
+            guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
             let newValueComparator = transform(newValue)
             if index - 1 >= base.startIndex {
                 let precedingValue = base[index - 1]
@@ -416,11 +423,13 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> LazyMapSortedArraySlice<Element, Comparator> {
+    public subscript(_ range: Range<Int>) -> LazyMapSortedArray<Element, Comparator>.Slice {
         get {
-                return LazyMapSortedArraySlice(base: base[range], transform: transform)
+            return LazyMapSortedArray.Slice(uncheckedSorted: base[range], on: transform)
         }
         set {
+            guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -448,22 +457,34 @@ extension LazyMapSortedArraySlice: BidirectionalCollection {
     }
 }
 
-extension LazyMapSortedArraySlice: CustomStringConvertible, CustomDebugStringConvertible {
+//extension LazyMapSortedArray.Slice: RangeReplaceableCollection {
+//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+//        where C.Iterator.Element == Iterator.Element {
+//        
+//    }
+//}
+
+extension LazyMapSortedArray.Slice: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return base.description
     }
     
     public var debugDescription: String {
+        // FIXME: Incorrectly `ArraySlice` for `.Slice` variants.
         return base.debugDescription
     }
 }
 
-extension LazyMapSortedArraySlice {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+extension LazyMapSortedArray.Slice {
+    public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+
         return insertionIndex(ofComparator: transform(element), for: selection)
     }
     
-    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: BoundSelection = .any) -> Int {
+    public func insertionIndex(ofComparator elementComparator: Comparator, for selection: IndexPosition = .any) -> Int {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -487,14 +508,14 @@ extension LazyMapSortedArraySlice {
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+    public mutating func insert(_ element: Element, at selection: IndexPosition = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
         base.insert(element, at: index)
         return index
     }
 }
 
-extension LazyMapSortedArraySlice {
+extension LazyMapSortedArray.Slice {
     public mutating func insert<S: Sequence>(contentsOf sequence: S) where S.Iterator.Element == Element {
         for element in sequence {
             insert(element)
@@ -502,8 +523,10 @@ extension LazyMapSortedArraySlice {
     }
 }
 
-extension LazyMapSortedArraySlice {
+extension LazyMapSortedArray.Slice {
     public mutating func insert(_ element: Element, at index: Int) {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         let elementComparator = transform(element)
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
@@ -523,6 +546,8 @@ extension LazyMapSortedArraySlice {
     }
     
     public mutating func append(_ element: Element) {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -537,11 +562,13 @@ extension LazyMapSortedArraySlice {
     }
 }
 
-extension LazyMapSortedArraySlice {
+extension LazyMapSortedArray.Slice {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
-    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+    public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         let elementComparator = transform(element)
@@ -557,7 +584,7 @@ extension LazyMapSortedArraySlice {
     }
 }
 
-extension LazyMapSortedArraySlice {
+extension LazyMapSortedArray.Slice {
     public mutating func popLast() -> Element? {
         return base.popLast()
     }
@@ -603,15 +630,30 @@ extension LazyMapSortedArraySlice {
         base.reserveCapacity(minimumCapacity)
     }
 }
+extension LazyMapSortedArray.Slice {
+    /// Returns the maximum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
+    }
+}
 
-extension LazyMapSortedArraySlice {
+extension LazyMapSortedArray.Slice {
     /// Replaces element at index with a new element, resorting the base afterwards.
     ///
     /// Note this is more efficient than simply removing and adding since this function
     /// will only shift the elements that actually need to move.
     ///
     /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {        
+    public mutating func replace(at index: Int, with element: Element) {
+        guard let transform = transform else { fatalError("Sorted array type not initialized with necessary predicate.") }
+            
         // Find most efficient position to insert at
         let oldElement = base[index]
         let elementComparator = transform(element)
@@ -630,9 +672,9 @@ extension LazyMapSortedArraySlice {
     }
 }
 
-public func ==<Element: Comparable, Comparator: Comparable>(
-    lhs: LazyMapSortedArraySlice<Element, Comparator>,
-    rhs: LazyMapSortedArraySlice<Element, Comparator>
+public func ==<Element: Equatable, Comparator: Comparable>(
+    lhs: LazyMapSortedArray<Element, Comparator>.Slice,
+    rhs: LazyMapSortedArray<Element, Comparator>.Slice
 ) -> Bool {
     return lhs.base == rhs.base
 }

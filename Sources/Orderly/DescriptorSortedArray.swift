@@ -13,7 +13,14 @@ public struct DescriptorSortedArray<Element> {
 }
 
 extension DescriptorSortedArray {
-    /// Constructs a `DescriptorSortedArray` assuing that `base` is already sorted,
+    public struct Slice {
+        fileprivate var base: ArraySlice<Element>
+        fileprivate let areIncreasingInOrdering: ((Element, Element) -> Bool)?
+    }
+}
+
+extension DescriptorSortedArray {
+    /// Constructs a `DescriptorSortedArray` assuring that `base` is already sorted,
     /// only performing check during testing.
     public init(uncheckedSorted base: [Element], by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         assert(base.isSorted(by: areIncreasingInOrdering))
@@ -45,6 +52,7 @@ extension Sequence {
         return DescriptorSortedArray(sorting: Array(self), by: areIncreasingInOrdering)
     }
 }
+
 
 extension DescriptorSortedArray: BidirectionalCollection {
     public var indices: CountableRange<Int> {
@@ -96,11 +104,12 @@ extension DescriptorSortedArray: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArray<Element>.Slice {
         get {
-                return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
+            return DescriptorSortedArray.Slice(uncheckedSorted: base[range], by: areIncreasingInOrdering)
         }
         set {
+            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -124,18 +133,27 @@ extension DescriptorSortedArray: BidirectionalCollection {
     }
 }
 
+//extension DescriptorSortedArray: RangeReplaceableCollection {
+//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+//        where C.Iterator.Element == Iterator.Element {
+//        
+//    }
+//}
+
 extension DescriptorSortedArray: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return base.description
     }
     
     public var debugDescription: String {
+        // FIXME: Incorrectly `ArraySlice` for `.Slice` variants.
         return base.debugDescription
     }
 }
 
 extension DescriptorSortedArray {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+    public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
+    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -158,7 +176,7 @@ extension DescriptorSortedArray {
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+    public mutating func insert(_ element: Element, at selection: IndexPosition = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
         base.insert(element, at: index)
         return index
@@ -175,6 +193,7 @@ extension DescriptorSortedArray {
 
 extension DescriptorSortedArray {
     public mutating func insert(_ element: Element, at index: Int) {
+        
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard !areIncreasingInOrdering(element, precedingValue) else {
@@ -191,6 +210,7 @@ extension DescriptorSortedArray {
     }
     
     public mutating func append(_ element: Element) {
+        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -207,7 +227,8 @@ extension DescriptorSortedArray {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
-    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+    public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
+        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         guard !areIncreasingInOrdering(element, potentialElement) && !areIncreasingInOrdering(potentialElement, element) else { return nil }
@@ -267,45 +288,31 @@ extension DescriptorSortedArray {
         base.reserveCapacity(minimumCapacity)
     }
 }
-
 extension DescriptorSortedArray {
-    /// Replaces element at index with a new element, resorting the base afterwards.
-    ///
-    /// Note this is more efficient than simply removing and adding since this function
-    /// will only shift the elements that actually need to move.
-    ///
-    /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {        
-        // Find most efficient position to insert at
-        let oldElement = base[index]
-        if areIncreasingInOrdering(oldElement, element) {
-            let newIndex = self[(index + 1)..<base.endIndex].insertionIndex(of: element, for: .least)
-            base[index..<(newIndex - 1)] = base[(index + 1)..<newIndex]
-            base[newIndex - 1] = element
-        } else if areIncreasingInOrdering(element, oldElement) {
-            let newIndex = self[base.startIndex..<(index + 1)].insertionIndex(of: element, for: .greatest)
-            base[(newIndex + 1)..<(index + 1)] = base[newIndex..<index]
-            base[newIndex] = element
-        } else {
-            base[index] = element
-        }
+    /// Returns the maximum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
     }
 }
 
-public func ==<Element: Comparable>(
-    lhs: DescriptorSortedArray<Element>,
-    rhs: DescriptorSortedArray<Element>
-) -> Bool {
-    return lhs.base == rhs.base
-}
-
-public struct DescriptorSortedArraySlice<Element> {
-    fileprivate var base: ArraySlice<Element>
-    fileprivate let areIncreasingInOrdering: (Element, Element) -> Bool
-}
-
-extension DescriptorSortedArraySlice {
-    /// Constructs a `DescriptorSortedArraySlice` assuing that `base` is already sorted,
+extension DescriptorSortedArray.Slice {
+//    public init() {
+//        self.init(uncheckedSorted: [])
+//    }
+    
+    fileprivate init(uncheckedSorted base: ArraySlice<Element>, by areIncreasingInOrdering: ((Element, Element) -> Bool)? = nil) {
+        self.base = base
+        self.areIncreasingInOrdering = areIncreasingInOrdering
+    }
+    
+    /// Constructs a `DescriptorSortedArray` assuring that `base` is already sorted,
     /// only performing check during testing.
     public init(uncheckedSorted base: ArraySlice<Element>, by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         assert(base.isSorted(by: areIncreasingInOrdering))
@@ -313,17 +320,16 @@ extension DescriptorSortedArraySlice {
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
     
-    /// Constructs a `DescriptorSortedArraySlice` if `base` is verified to be sorted, otherwise returns `nil`.
+    /// Constructs a `DescriptorSortedArray` if `base` is verified to be sorted, otherwise returns `nil`.
     public init?(checkingSorted base: ArraySlice<Element>, by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
         guard base.isSorted(by: areIncreasingInOrdering) else { return nil }
         self.base = base
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
     
-    // Constructs a `DescriptorSortedArraySlice` by sorting `base`.
+    // Constructs a `DescriptorSortedArray` by sorting `base`.
     public init(sorting base: ArraySlice<Element>, by areIncreasingInOrdering: @escaping (Element, Element) -> Bool) {
-        let sorted: Array = base.sorted(by: areIncreasingInOrdering)
-        self.base = sorted[sorted.indices]
+        self.base = ArraySlice(base.sorted(by: areIncreasingInOrdering))
         self.areIncreasingInOrdering = areIncreasingInOrdering
     }
     
@@ -333,7 +339,8 @@ extension DescriptorSortedArraySlice {
     }
 }
 
-extension DescriptorSortedArraySlice: BidirectionalCollection {
+
+extension DescriptorSortedArray.Slice: BidirectionalCollection {
     public var indices: CountableRange<Int> {
         return base.indices
     }
@@ -367,6 +374,7 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
             return base[index]
         }
         set {
+            guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
             if index - 1 >= base.startIndex {
                 let precedingValue = base[index - 1]
                 guard !areIncreasingInOrdering(newValue, precedingValue) else {
@@ -383,11 +391,13 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
         }
     }
     
-    public subscript(_ range: Range<Int>) -> DescriptorSortedArraySlice<Element> {
+    public subscript(_ range: Range<Int>) -> DescriptorSortedArray<Element>.Slice {
         get {
-                return DescriptorSortedArraySlice(base: base[range], areIncreasingInOrdering: areIncreasingInOrdering)
+            return DescriptorSortedArray.Slice(uncheckedSorted: base[range], by: areIncreasingInOrdering)
         }
         set {
+            guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -411,18 +421,28 @@ extension DescriptorSortedArraySlice: BidirectionalCollection {
     }
 }
 
-extension DescriptorSortedArraySlice: CustomStringConvertible, CustomDebugStringConvertible {
+//extension DescriptorSortedArray.Slice: RangeReplaceableCollection {
+//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+//        where C.Iterator.Element == Iterator.Element {
+//        
+//    }
+//}
+
+extension DescriptorSortedArray.Slice: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
         return base.description
     }
     
     public var debugDescription: String {
+        // FIXME: Incorrectly `ArraySlice` for `.Slice` variants.
         return base.debugDescription
     }
 }
 
-extension DescriptorSortedArraySlice {
-    public func insertionIndex(of element: Element, for selection: BoundSelection = .any) -> Int {
+extension DescriptorSortedArray.Slice {
+    public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
+        guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -445,14 +465,14 @@ extension DescriptorSortedArraySlice {
     }
     
     @discardableResult 
-    public mutating func insert(_ element: Element, at selection: BoundSelection = .any) -> Int {
+    public mutating func insert(_ element: Element, at selection: IndexPosition = .any) -> Int {
         let index = insertionIndex(of: element, for: selection)
         base.insert(element, at: index)
         return index
     }
 }
 
-extension DescriptorSortedArraySlice {
+extension DescriptorSortedArray.Slice {
     public mutating func insert<S: Sequence>(contentsOf sequence: S) where S.Iterator.Element == Element {
         for element in sequence {
             insert(element)
@@ -460,8 +480,10 @@ extension DescriptorSortedArraySlice {
     }
 }
 
-extension DescriptorSortedArraySlice {
+extension DescriptorSortedArray.Slice {
     public mutating func insert(_ element: Element, at index: Int) {
+        guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard !areIncreasingInOrdering(element, precedingValue) else {
@@ -478,6 +500,8 @@ extension DescriptorSortedArraySlice {
     }
     
     public mutating func append(_ element: Element) {
+        guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -490,11 +514,13 @@ extension DescriptorSortedArraySlice {
     }
 }
 
-extension DescriptorSortedArraySlice {
+extension DescriptorSortedArray.Slice {
     /// Returns the index where the specified value appears in the specified
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
-    public func index(of element: Element, at selection: BoundSelection = .any) -> Int? {
+    public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
+        guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         guard !areIncreasingInOrdering(element, potentialElement) && !areIncreasingInOrdering(potentialElement, element) else { return nil }
@@ -508,7 +534,7 @@ extension DescriptorSortedArraySlice {
     }
 }
 
-extension DescriptorSortedArraySlice {
+extension DescriptorSortedArray.Slice {
     public mutating func popLast() -> Element? {
         return base.popLast()
     }
@@ -554,15 +580,30 @@ extension DescriptorSortedArraySlice {
         base.reserveCapacity(minimumCapacity)
     }
 }
+extension DescriptorSortedArray.Slice {
+    /// Returns the maximum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func max() -> Element? {
+        return last
+    }
+    
+    /// Returns the minimum element of the base.
+    /// - Complexity: O(1)
+    @warn_unqualified_access public func min() -> Element? {
+        return first
+    }
+}
 
-extension DescriptorSortedArraySlice {
+extension DescriptorSortedArray.Slice {
     /// Replaces element at index with a new element, resorting the base afterwards.
     ///
     /// Note this is more efficient than simply removing and adding since this function
     /// will only shift the elements that actually need to move.
     ///
     /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {        
+    public mutating func replace(at index: Int, with element: Element) {
+        guard let areIncreasingInOrdering = areIncreasingInOrdering else { fatalError("Sorted array type not initialized with necessary predicate.") }
+            
         // Find most efficient position to insert at
         let oldElement = base[index]
         if areIncreasingInOrdering(oldElement, element) {
@@ -579,9 +620,9 @@ extension DescriptorSortedArraySlice {
     }
 }
 
-public func ==<Element: Comparable>(
-    lhs: DescriptorSortedArraySlice<Element>,
-    rhs: DescriptorSortedArraySlice<Element>
+public func ==<Element: Equatable>(
+    lhs: DescriptorSortedArray<Element>.Slice,
+    rhs: DescriptorSortedArray<Element>.Slice
 ) -> Bool {
     return lhs.base == rhs.base
 }
