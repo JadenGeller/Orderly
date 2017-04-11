@@ -32,7 +32,7 @@ public enum IndexPosition {
             return 'comparator' if type is LAZY_MAP else 'self'
         else:
             return id + 'Comparator' if type is LAZY_MAP else id
-                    
+    
     def compare(lhs, op, rhs):
         if type  is not DESCRIPTOR:
             return ' '.join([lhs, op, rhs])
@@ -106,9 +106,9 @@ extension ${prefix}SortedArray {
     public struct Slice {
         fileprivate var base: ArraySlice<Element>
         % if type is DESCRIPTOR:
-        fileprivate let areIncreasingInOrdering: ((Element, Element) -> Bool)?
+        fileprivate let areIncreasingInOrdering: (Element, Element) -> Bool
         % elif type is LAZY_MAP: 
-        fileprivate var transform: ((Element) -> Comparator)?
+        fileprivate var transform: (Element) -> Comparator
         %end
     }
 }
@@ -118,12 +118,6 @@ extension ${prefix}SortedArray {
         NORMAL:     '',
         DESCRIPTOR: 'by areIncreasingInOrdering: @escaping (Element, Element) -> Bool',
         LAZY_MAP:   'on transform: @escaping (Element) -> Comparator'
-    }[type]
-    
-    optional_decl_arg = {
-        NORMAL:     '',
-        DESCRIPTOR: 'by areIncreasingInOrdering: ((Element, Element) -> Bool)?',
-        LAZY_MAP:   'on transform: ((Element) -> Comparator)?'
     }[type]
         
     call_arg = {
@@ -136,34 +130,9 @@ extension ${prefix}SortedArray {
         return ', ' + arg if arg != '' else ''
 }%
 % for is_slice in [False, True]:
-%{
-    suffix = '.Slice' if is_slice else ''
-    backing = '[Element]' if not is_slice else 'ArraySlice<Element>'
-    compare_req_init = is_slice and type is not NORMAL
-    compare_init = {
-        NORMAL:     None,
-        DESCRIPTOR: 'areIncreasingInOrdering',
-        LAZY_MAP:   'transform',
-    }[type]
-    compare_init  = 'guard let {0} = {0} else {{ fatalError("{1}") }}'.format(compare_init,
-        'Sorted array type not initialized with necessary predicate.')
-}%
+%   suffix = '.Slice' if is_slice else ''
+%   backing = '[Element]' if not is_slice else 'ArraySlice<Element>'
 extension ${prefix}SortedArray${suffix} {
-    % if compare_req_init:
-//    public init() {
-//        self.init(uncheckedSorted: [])
-//    }
-    
-    fileprivate init(uncheckedSorted base: ${backing}${next(optional_decl_arg)} = nil) {
-        self.base = base
-        % if type is DESCRIPTOR:
-        self.areIncreasingInOrdering = areIncreasingInOrdering
-        % elif type is LAZY_MAP: 
-        self.transform = transform
-        %end
-    }
-    
-    %end
     /// Constructs a `${prefix}SortedArray` assuring that `base` is already sorted,
     /// only performing check during testing.
     public init(uncheckedSorted base: ${backing}${next(decl_arg)}) {
@@ -209,6 +178,26 @@ extension ${prefix}SortedArray${suffix} {
         self.transform = transform
         %end
     }
+    % if type is not NORMAL:
+    
+    // Required for `RangeReplaceableCollection` conformance.
+    @available(*, unavailable, message: "Use `init(${{
+        DESCRIPTOR: 'by',
+        LAZY_MAP:   'on'
+    }[type]}:)`")
+    public init() {
+        self.base = []
+        % if type is DESCRIPTOR:
+        self.areIncreasingInOrdering = { _, _ in
+            fatalError("Undefined `areIncreasingInOrdering` predicate")
+        }
+        % elif type is LAZY_MAP: 
+        self.transform = { _ in
+            fatalError("Undefined `transform` mapping")
+        }
+        %end
+    }
+    %end
 }
 
 % if type is NORMAL: 
@@ -268,9 +257,6 @@ extension ${prefix}SortedArray${suffix}: BidirectionalCollection {
             return base[index]
         }
         set {
-            % if compare_req_init:
-            ${compare_init}
-            %end
             % if type is LAZY_MAP: 
             let ${comparator('newValue')} = transform(newValue)
             %end
@@ -303,10 +289,6 @@ extension ${prefix}SortedArray${suffix}: BidirectionalCollection {
             return ${prefix}SortedArray.Slice(uncheckedSorted: base[range]${next(call_arg)})
         }
         set {
-            % if compare_req_init:
-            ${compare_init}
-            %end
-            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -340,12 +322,26 @@ extension ${prefix}SortedArray${suffix}: BidirectionalCollection {
     }
 }
 
-//extension ${prefix}SortedArray${suffix}: RangeReplaceableCollection {
-//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
-//        where C.Iterator.Element == Iterator.Element {
-//        
-//    }
-//}
+%{
+    undef_arg = {
+        NORMAL: '',
+        DESCRIPTOR: '''by: { _, _ in
+                fatalError("Undefined `areIncreasingInOrdering` predicate")
+            }''',
+        LAZY_MAP: '''on: { _ in
+                fatalError("Undefined `transform` map")
+            }'''
+    }[type]
+}%
+extension ${prefix}SortedArray${suffix}: RangeReplaceableCollection {
+    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+        where C.Iterator.Element == Iterator.Element {
+        guard let sorted = ${prefix}SortedArray${call_generics}.Slice(checkingSorted: ArraySlice(newElements)${next(undef_arg)}) else {
+            fatalError("`newElements` must already be sorted.")
+        }
+        self[subrange] = sorted
+    }
+}
 
 extension ${prefix}SortedArray${suffix}: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
@@ -361,10 +357,6 @@ extension ${prefix}SortedArray${suffix}: CustomStringConvertible, CustomDebugStr
 extension ${prefix}SortedArray${suffix} {
     % if type is LAZY_MAP:
     public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
-        % if compare_req_init and type is LAZY_MAP:
-        ${compare_init}
-        %end
-
         return insertionIndex(ofComparator: transform(element), for: selection)
     }
     %end    
@@ -374,10 +366,6 @@ extension ${prefix}SortedArray${suffix} {
     % else:
     public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
     %end
-        % if compare_req_init:
-        ${compare_init}
-        %end
-    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -432,10 +420,6 @@ extension ${prefix}SortedArray${suffix} {
 
 extension ${prefix}SortedArray${suffix} {
     public mutating func insert(_ element: Element, at index: Int) {
-        % if compare_req_init:
-        ${compare_init}
-        %end
-        
         % if type is LAZY_MAP: 
         let ${comparator('element')} = transform(element)
         %end
@@ -463,10 +447,6 @@ extension ${prefix}SortedArray${suffix} {
     }
     
     public mutating func append(_ element: Element) {
-        % if compare_req_init:
-        ${compare_init}
-        %end
-        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -489,10 +469,6 @@ extension ${prefix}SortedArray${suffix} {
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
     public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
-        % if compare_req_init:
-        ${compare_init}
-        %end
-        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         % if type is LAZY_MAP: 
@@ -604,11 +580,7 @@ extension ${prefix}SortedArray${suffix} {
     /// will only shift the elements that actually need to move.
     ///
     /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {
-        % if compare_req_init:
-        ${compare_init}
-        %end
-            
+    public mutating func replace(at index: Int, with element: Element) {        
         // Find most efficient position to insert at
         let oldElement = base[index]
         % if type is LAZY_MAP: 

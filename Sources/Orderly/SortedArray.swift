@@ -110,7 +110,6 @@ extension SortedArray: BidirectionalCollection {
             return SortedArray.Slice(uncheckedSorted: base[range])
         }
         set {
-            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -134,12 +133,15 @@ extension SortedArray: BidirectionalCollection {
     }
 }
 
-//extension SortedArray: RangeReplaceableCollection {
-//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
-//        where C.Iterator.Element == Iterator.Element {
-//        
-//    }
-//}
+extension SortedArray: RangeReplaceableCollection {
+    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+        where C.Iterator.Element == Iterator.Element {
+        guard let sorted = SortedArray<Element>.Slice(checkingSorted: ArraySlice(newElements)) else {
+            fatalError("`newElements` must already be sorted.")
+        }
+        self[subrange] = sorted
+    }
+}
 
 extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
@@ -154,7 +156,6 @@ extension SortedArray: CustomStringConvertible, CustomDebugStringConvertible {
 
 extension SortedArray {
     public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
-    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -202,7 +203,6 @@ extension SortedArray {
 
 extension SortedArray {
     public mutating func insert(_ element: Element, at index: Int) {
-        
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard precedingValue <= element else {
@@ -219,7 +219,6 @@ extension SortedArray {
     }
     
     public mutating func append(_ element: Element) {
-        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -237,7 +236,6 @@ extension SortedArray {
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
     public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
-        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         guard element == potentialElement else { return nil }
@@ -413,7 +411,6 @@ extension SortedArray.Slice: BidirectionalCollection {
             return SortedArray.Slice(uncheckedSorted: base[range])
         }
         set {
-            
             // Fast path for empty assignment
             guard !newValue.isEmpty else {
                 base.removeSubrange(range)
@@ -437,12 +434,15 @@ extension SortedArray.Slice: BidirectionalCollection {
     }
 }
 
-//extension SortedArray.Slice: RangeReplaceableCollection {
-//    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
-//        where C.Iterator.Element == Iterator.Element {
-//        
-//    }
-//}
+extension SortedArray.Slice: RangeReplaceableCollection {
+    public mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
+        where C.Iterator.Element == Iterator.Element {
+        guard let sorted = SortedArray<Element>.Slice(checkingSorted: ArraySlice(newElements)) else {
+            fatalError("`newElements` must already be sorted.")
+        }
+        self[subrange] = sorted
+    }
+}
 
 extension SortedArray.Slice: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String {
@@ -457,7 +457,6 @@ extension SortedArray.Slice: CustomStringConvertible, CustomDebugStringConvertib
 
 extension SortedArray.Slice {
     public func insertionIndex(of element: Element, for selection: IndexPosition = .any) -> Int {
-    
         var (lowerBound, upperBound) = (startIndex, endIndex)
         while lowerBound < upperBound {
             let middleBound = (upperBound - lowerBound) / 2 + lowerBound
@@ -505,7 +504,6 @@ extension SortedArray.Slice {
 
 extension SortedArray.Slice {
     public mutating func insert(_ element: Element, at index: Int) {
-        
         if index - 1 >= base.startIndex {
             let precedingValue = base[index - 1]
             guard precedingValue <= element else {
@@ -522,7 +520,6 @@ extension SortedArray.Slice {
     }
     
     public mutating func append(_ element: Element) {
-        
         guard let lastValue = base.last else {
             // Currently empty
             base.append(element)
@@ -540,7 +537,6 @@ extension SortedArray.Slice {
     /// position in the collection.
     /// - Complexity: O(log(n)), where n is the length of the base.
     public func index(of element: Element, at selection: IndexPosition = .any) -> Int? {
-        
         let potentialIndex = insertionIndex(of: element, for: selection)
         let potentialElement = self[potentialIndex]
         guard element == potentialElement else { return nil }
@@ -636,8 +632,7 @@ extension SortedArray.Slice {
     /// will only shift the elements that actually need to move.
     ///
     /// - Complexity: O(n), where n is the length of the base.
-    public mutating func replace(at index: Int, with element: Element) {
-            
+    public mutating func replace(at index: Int, with element: Element) {        
         // Find most efficient position to insert at
         let oldElement = base[index]
         if oldElement < element {
